@@ -166,6 +166,7 @@ export function StackedBarChartSkeleton({ width, height, bars = 8, stacks = 3, a
   const step = f.plot.w / bars;
   const w = Math.max(Math.round(step * 0.56), 2);
   const parts = Array.from({ length: stacks }, (_, s) => wave(bars, s + 4));
+  const heights = wave(bars, 1);
   return (
     <Drawing width={width} height={height} {...props}>
       {axes && <Grid plot={f.plot} />}
@@ -173,7 +174,7 @@ export function StackedBarChartSkeleton({ width, height, bars = 8, stacks = 3, a
       {Array.from({ length: bars }, (_, i) => {
         const x = f.plot.x + step * i + (step - w) / 2;
         const total = parts.reduce((sum, p) => sum + p[i], 0);
-        const stack = Math.max(Math.round((0.35 + 0.6 * wave(bars, 1)[i]) * (f.plot.h - 2)), stacks * 4);
+        const stack = Math.max(Math.round((0.35 + 0.6 * heights[i]) * (f.plot.h - 2)), stacks * 4);
         let top = f.plot.y + f.plot.h;
         return (
           <React.Fragment key={i}>

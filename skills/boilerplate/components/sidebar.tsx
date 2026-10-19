@@ -58,7 +58,9 @@ const SidebarContext = React.createContext<SidebarContextValue | null>(null);
 // For rows inside the desktop sidebar. `rail`: the sidebar is the icon rail and rows show as icons. `tooltips`: they
 // name themselves beside it (not in peek mode, where hovering shows the whole sidebar instead). Rows anywhere else (a
 // SidebarPanel, the drawer) stay ordinary rows even while the sidebar is collapsed.
-const RailContext = React.createContext({ rail: false, tooltips: false, side: 'left' as Side });
+// What a row needs, apart from the provider's context: whether it sits in the rail, and the way to expand the sidebar.
+// Rows read only this, so a change elsewhere in the sidebar (its width, the drawer, the shortcut) never re-renders them.
+const RailContext = React.createContext({ rail: false, tooltips: false, side: 'left' as Side, setOpen: (_open: boolean) => {} });
 
 export function useSidebar() {
   const context = React.useContext(SidebarContext);
@@ -269,7 +271,7 @@ export function Sidebar({
   onClick,
   ...props
 }: SidebarProps) {
-  const { open, openMobile, setOpenMobile, isMobile, id, triggerRef, root, setDrawer, panelOpen, setSide } = useSidebar();
+  const { open, setOpen, openMobile, setOpenMobile, isMobile, id, triggerRef, root, setDrawer, panelOpen, setSide } = useSidebar();
   const ref = React.useRef<HTMLDivElement>(null);
   const navRef = React.useRef<HTMLElement>(null);
 
@@ -362,7 +364,9 @@ export function Sidebar({
     animations.current = [panel, contents];
   }, [peeking, peek, side]);
 
-  const rail = { rail: !isMobile && !open && collapsible !== 'offcanvas' && !peeking, tooltips: collapsible === 'icon', side };
+  const inRail = !isMobile && !open && collapsible !== 'offcanvas' && !peeking;
+  const tooltips = collapsible === 'icon';
+  const rail = React.useMemo(() => ({ rail: inRail, tooltips, side, setOpen }), [inRail, tooltips, side, setOpen]);
 
   const nav = (
     // On a phone, an open SidebarPanel covers the sidebar inside the drawer: what's under it can't take focus.
@@ -661,12 +665,11 @@ type SidebarResizerProps = Omit<React.ComponentProps<'div'>, 'children'> & {
 export function SidebarResizer({ min = 192, max = 480, step = 16, className, ...props }: SidebarResizerProps) {
   const { open, setOpen, width, setWidth, isMobile, id, side, root } = useSidebar();
   const ref = React.useRef<HTMLDivElement>(null);
-  const [current, setCurrent] = React.useState(width);
-
+  const [measured, setMeasured] = React.useState<number>();
   // The width it's showing now, for aria-valuenow: the set one, or the default's, measured.
+  const current = width ?? measured;
   React.useLayoutEffect(() => {
-    const nav = ref.current?.closest('[data-slot=sidebar]')?.querySelector('nav');
-    setCurrent(width ?? nav?.offsetWidth);
+    if (width === undefined) setMeasured(ref.current?.closest('[data-slot=sidebar]')?.querySelector('nav')?.offsetWidth);
   }, [width]);
 
   if (isMobile) return null;
@@ -689,13 +692,18 @@ export function SidebarResizer({ min = 192, max = 480, step = 16, className, ...
     document.documentElement.style.cursor = 'col-resize';
     document.documentElement.style.userSelect = 'none';
 
+    // Live, the width goes straight to the variable the rows follow, with no render per move; it's set (and
+    // onWidthChange called) once, on release.
+    let last: number | undefined;
     const onMove = (move: PointerEvent) => {
       const next = start.width + (move.clientX - start.x) * outward;
       if (next < min / 2) return expand(false);
       expand(true);
-      setWidth(clamp(next));
+      last = clamp(next);
+      root?.style.setProperty('--sidebar-width', `${last}px`);
     };
     const onUp = () => {
+      if (last !== undefined) setWidth(last);
       handle.removeEventListener('pointermove', onMove);
       handle.removeEventListener('pointerup', onUp);
       handle.removeEventListener('pointercancel', onUp);
@@ -1003,8 +1011,7 @@ export function SidebarMenuButton({
   onClick,
   ...props
 }: SidebarMenuButtonProps) {
-  const { setOpen } = useSidebar();
-  const { rail: inRail, tooltips, side } = React.useContext(RailContext);
+  const { rail: inRail, tooltips, side, setOpen } = React.useContext(RailContext);
   const row = useRender({
     defaultTagName: 'button',
     render,
@@ -1049,10 +1056,11 @@ export function SidebarMenuButton({
       ...props,
     },
   });
-  if (tooltip == null) return row;
+  // Tooltips only in an icon rail; other sidebars never show one, so they mount none.
+  if (tooltip == null || !tooltips) return row;
 
   return (
-    <Tooltip.Root disabled={!inRail || !tooltips}>
+    <Tooltip.Root disabled={!inRail}>
       <Tooltip.Trigger render={row} />
       <Tooltip.Portal>
         <Tooltip.Positioner side={side === 'right' ? 'left' : 'right'} sideOffset={8} className="z-50">

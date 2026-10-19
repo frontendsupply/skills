@@ -1,16 +1,16 @@
 # Button
 
-A button built on `@base-ui/react/button`, with its classes in a `tailwind-variants` recipe. 
+A button built on `@base-ui/react/button`, with its classes in a `tailwind-variants` recipe, merged by `cn`.
 
 ## Setup
 
-- **Needs:** `@base-ui/react`, `tailwind-variants` (it merges classes itself, so this file needs no `cn`).
+- **Needs:** `@base-ui/react`, `tailwind-variants` (its lite build, `tailwind-variants/lite`, which doesn't merge classes) and `cn` (which does, so a bundle carries one merge engine).
 - **Copy:** `components/button.tsx`, into the project's UI folder.
 - **Read for the look:** an existing button, an input and a badge or alert (for its status colors).
 
 ## Look values the behavior depends on
 
-Each status only sets four variables, so restyling a status means pointing them at the project's colors: `--button` (the solid fill), `--button-on` (text on that fill), `--button-ink` (text and icons in outline and ghost), `--button-tint` (ghost hover). Keep every solid fill at 4.5:1 or better against its text. `tailwind-variants` stays: it is the recipe format. The file uses no icon library itself; icons come from the caller.
+Each status only sets four variables, so restyling a status means pointing them at the project's colors: `--button` (the solid fill), `--button-on` (text on that fill), `--button-ink` (text and icons in outline and ghost), `--button-tint` (ghost hover). Keep every solid fill at 4.5:1 or better against its text. `tailwind-variants/lite` stays: it is the recipe format, and `cn` its merging. The file uses no icon library itself; icons come from the caller.
 
 Change these together:
 

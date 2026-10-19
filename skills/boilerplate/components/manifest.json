@@ -89,7 +89,8 @@
       ],
       "imports": [
         "@base-ui/react/button",
-        "tailwind-variants"
+        "cn",
+        "tailwind-variants/lite"
       ]
     },
     "dialog": {

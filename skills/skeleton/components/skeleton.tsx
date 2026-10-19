@@ -183,6 +183,8 @@ function draw(root: HTMLElement, shapes: Shape[], id: string, animate: boolean, 
   const style = getComputedStyle(root);
   const w = rect.width - parseFloat(style.borderLeftWidth) - parseFloat(style.borderRightWidth);
   const h = rect.height - parseFloat(style.borderTopWidth) - parseFloat(style.borderBottomWidth);
+  // Read now, with the size: after the first write below, a read would make the browser recompute styles again.
+  const rtl = style.direction === 'rtl';
   const outlines = shapes.filter((s) => !s.bar).length;
   let body = '';
   let lit = '';
@@ -233,7 +235,7 @@ function draw(root: HTMLElement, shapes: Shape[], id: string, animate: boolean, 
   const shimmer = still
     ? ''
     : `<defs>${stripes('lit', '#fff')}<linearGradient id="g"><stop offset="0" stop-opacity="0"/><stop offset=".5"/><stop offset="1" stop-opacity="0"/></linearGradient><mask id="m" maskUnits="userSpaceOnUse" x="0" y="0" width="${w}" height="${h}">${lit}</mask></defs>` +
-      `<style>.s{transform:translateX(${-band}px);animation:s ${SHIMMER_MS}ms ease-in-out ${animate ? TRACE_MS + STAGGER_MS : 0}ms infinite${style.direction === 'rtl' ? ' reverse' : ''}}@keyframes s{from{transform:translateX(${-band}px)}to{transform:translateX(${w}px)}}</style>` +
+      `<style>.s{transform:translateX(${-band}px);animation:s ${SHIMMER_MS}ms ease-in-out ${animate ? TRACE_MS + STAGGER_MS : 0}ms infinite${rtl ? ' reverse' : ''}}@keyframes s{from{transform:translateX(${-band}px)}to{transform:translateX(${w}px)}}</style>` +
       `<g mask="url(#m)"><rect class="s" width="${band}" height="${h}" fill="url(#g)"/></g>`;
   root.style.setProperty('--skeleton-shimmer', svg(w, h, shimmer, `${id}m`));
   root.dataset.drawn = '';
@@ -276,22 +278,29 @@ export function Skeleton({ loading = false, render, className, ref, ...props }: 
     let traced = false;
     let live = true;
     // The first drawing with something in it traces in; later ones only when something moved, and still.
-    const redraw = () => {
+    const redraw = (shapes = measure(root)) => {
       frame = 0;
-      const shapes = measure(root);
       const now = JSON.stringify(shapes);
       if (now !== drawn) draw(root, shapes, id, !traced && !still, still);
       drawn = now;
       traced ||= shapes.length > 0;
     };
+    // Measured first: laying the text out is what starts loading a font it needs, so only then is the fonts' status
+    // known.
+    const first = measure(root);
     if (document.fonts?.status === 'loading') document.fonts.ready.then(() => live && !drawn && redraw());
-    else redraw();
-    const later = () => {
-      if (drawn && !frame) frame = requestAnimationFrame(redraw);
-    };
-    const resize = new ResizeObserver(later);
+    else redraw(first);
+    // A resize redraws at once: the observer runs after layout and before paint, so the new drawing lands in the same
+    // frame as the new layout, never a frame of the old one stretched over it. Content changes wait for a frame.
+    const resize = new ResizeObserver(() => {
+      if (!drawn) return;
+      cancelAnimationFrame(frame);
+      redraw();
+    });
     resize.observe(root);
-    const change = new MutationObserver(later);
+    const change = new MutationObserver(() => {
+      if (drawn && !frame) frame = requestAnimationFrame(() => redraw());
+    });
     change.observe(root, { subtree: true, childList: true, characterData: true });
     // When loading ends: no redraw for the new content (the observers stop, their pending records with them), and the
     // drawing goes before the next paint.

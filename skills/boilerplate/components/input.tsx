@@ -328,11 +328,12 @@ export function InputGroup({ render, className, ...props }: useRender.ComponentP
             const target = event.target as Element;
             if (!input || event.button !== 0 || target.closest('button, a, input, select, textarea, [tabindex]')) return;
             event.preventDefault(); // keeps the focus (and the caret) where it is if the input already has it
-            input.focus();
             // As in a field that's one piece: a click past the end of the text puts the caret at the end, a click
-            // before its start at the start. Email and number inputs have no caret API, hence the try.
+            // before its start at the start. Measured before the focus, which can hide a hint (InputKbd) and widen
+            // the input under the click. Email and number inputs have no caret API, hence the try.
             const box = input.getBoundingClientRect();
             const rtl = getComputedStyle(input).direction === 'rtl';
+            input.focus();
             const after = rtl ? event.clientX < box.left : event.clientX > box.right;
             const before = rtl ? event.clientX > box.right : event.clientX < box.left;
             const at = after ? input.value.length : before ? 0 : null;

@@ -1,11 +1,13 @@
 import * as React from 'react';
 import { Button as BaseButton } from '@base-ui/react/button';
-import { tv, type VariantProps } from 'tailwind-variants';
+import { tv, type VariantProps } from 'tailwind-variants/lite';
+import { cn } from 'cn';
 
 // One size. `status` picks the color, `variant` how much of it. Each status only sets four variables
 // (--button, --button-on, --button-ink, --button-tint); each variant only reads them, so every
-// combination works without a compound variant.
-export const buttonVariants = tv({
+// combination works without a compound variant. The recipe is tailwind-variants' lite build, which doesn't merge
+// classes: `cn` does, as in every other component, so a bundle carries one merge engine, not two.
+const recipe = tv({
   base: [
     // behavior
     'relative inline-flex shrink-0 items-center justify-center border border-transparent whitespace-nowrap outline-hidden select-none',
@@ -49,6 +51,9 @@ export const buttonVariants = tv({
   },
   defaultVariants: { status: 'neutral', variant: 'outline' },
 });
+
+/** The button's classes, for a link or anything else that looks like a button: `buttonVariants({ status, variant, className })`. */
+export const buttonVariants = (props?: Parameters<typeof recipe>[0]) => cn(recipe(props));
 
 /** Marks content as the button's label when it isn't a plain string: `<ButtonLabel><Trans>…</Trans></ButtonLabel>`. */
 export function ButtonLabel(props: React.ComponentProps<'span'>) {
@@ -96,7 +101,7 @@ function withLabel(children: React.ReactNode, id: string) {
 }
 
 export type ButtonProps = Omit<BaseButton.Props, 'className'> &
-  VariantProps<typeof buttonVariants> & {
+  VariantProps<typeof recipe> & {
     className?: string;
     /** Shows a spinner in place of the content and disables the button, keeping it focusable. */
     loading?: boolean;
@@ -129,7 +134,8 @@ export function Button({
     if (!loading) {
       // Read now, and again whenever it resizes. The observer alone reports on the next frame, so a loading that
       // starts before then (a click right after mount, a background tab) would have no width to hold.
-      const measure = () => (idleWidth.current = node.getBoundingClientRect().width);
+      // The layout width, not getBoundingClientRect's, which a transform scales (a dialog opening around it).
+      const measure = () => (idleWidth.current = parseFloat(getComputedStyle(node).width) || 0);
       measure();
       const observer = new ResizeObserver(measure);
       observer.observe(node);

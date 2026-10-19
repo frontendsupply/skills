@@ -20,7 +20,7 @@ The components every product needs, done properly once. Each one carries the har
 Not negotiable, in every project:
 
 - **[Base UI](https://base-ui.com) (`@base-ui/react`) is what every component is built on.** Install it if it's missing. A project that already uses Radix, Headless UI, React Aria, Ark, MUI or its own primitives keeps them for its other code, but no boilerplate component is built on them, wraps them or imports them. Rebuilding a Radix-based component means its file moves to Base UI; Radix stays installed for whatever else uses it (never uninstall the project's packages).
-- **[`cn`](https://github.com/shadcn-ui/cn) (the `cn` package) does the class merging.** Install it if it's missing, and import it exactly as the files do: `import { cn } from 'cn'`. Even when the project has its own `cn` in `lib/utils` (`clsx` + `tailwind-merge`), the components import the package; the project's helper stays for its other code. Button's recipe uses `tailwind-variants`, which merges classes itself.
+- **[`cn`](https://github.com/shadcn-ui/cn) (the `cn` package) does the class merging.** Install it if it's missing, and import it exactly as the files do: `import { cn } from 'cn'`. Even when the project has its own `cn` in `lib/utils` (`clsx` + `tailwind-merge`), the components import the package; the project's helper stays for its other code. Button's recipe uses `tailwind-variants`' lite build, and `cn` merges its classes too.
 - **Tailwind CSS v4.** The components and `cn` are written for it. On Tailwind v3, stop before writing anything: say the boilerplate needs v4 and offer Tailwind's official upgrade first (`@tailwindcss/upgrade`, run with the project's package runner: `npx`, `pnpm dlx`, `bunx`), then check the project's own styles still hold. Without Tailwind at all, say so and offer to add Tailwind v4 first. Never port the components to another styling system.
 
 What follows the project is the look, never the foundations: its colors, radius, shadows, type, spacing and dark mode, its icon set, its folders and file names. `scripts/check.mjs` fails a component that doesn't import Base UI and `cn` as shipped, or that imports another primitives library.
@@ -29,7 +29,7 @@ What follows the project is the look, never the foundations: its colors, radius,
 
 | Component | Gives you | Needs | Reference |
 | --- | --- | --- | --- |
-| `button` | One size, five statuses, solid/outline/ghost, leading/trailing/icon-only icons, a loading state that holds its width and its focus | `@base-ui/react`, `tailwind-variants` | `references/button.md` |
+| `button` | One size, five statuses, solid/outline/ghost, leading/trailing/icon-only icons, a loading state that holds its width and its focus | `@base-ui/react`, `tailwind-variants`, `cn` | `references/button.md` |
 | `dialog` | Modal on desktop, swipeable bottom sheet below 768px, long content, nested stacks, close-all, cancelable close, one dialog for many triggers | `@base-ui/react`, `cn` | `references/dialog.md` |
 | `input` | Text field and frame (icons, addons, buttons), clear, show password, copy, ⌘K focus, count, Caps Lock, autocomplete with sections, Field label, description and error, mobile keyboards | `@base-ui/react`, `lucide-react`, `cn` | `references/input.md` |
 | `menu` | Dropdown, context menu and menubar from one set of rows; stacked submenus of any depth; checkbox and radio items; keyboard shortcuts | `@base-ui/react`, `keyux`, `lucide-react`, `cn` | `references/menu.md` |

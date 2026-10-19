@@ -129,7 +129,9 @@ export function Select<Value, Multiple extends boolean | undefined = false>(prop
   const [indent, setIndent] = React.useState(0);
 
   const onChange = React.useRef(onValueChange);
-  onChange.current = onValueChange;
+  React.useLayoutEffect(() => {
+    onChange.current = onValueChange;
+  });
   const setValue = React.useCallback((next: unknown, details: ChangeDetails) => {
     (onChange.current as ((value: unknown, details: ChangeDetails) => void) | undefined)?.(next, details);
     if (!details.isCanceled) setUncontrolled(next);
