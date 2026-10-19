@@ -1,0 +1,51 @@
+{
+  "name": "@frontendsupply/chart-skeletons",
+  "version": "0.1.0",
+  "description": "Loading-state drawings of common charts, at a chart's exact size, for frontend.supply's skeleton skill.",
+  "keywords": [
+    "skeleton",
+    "loading",
+    "chart",
+    "react",
+    "svg"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/frontendsupply/skills.git",
+    "directory": "packages/chart-skeletons"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "publishConfig": {
+    "access": "public",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "tsc && node test.mjs",
+    "prepack": "pnpm test"
+  },
+  "peerDependencies": {
+    "react": ">=19"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "typescript": "^7.0.2"
+  }
+}

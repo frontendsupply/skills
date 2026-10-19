@@ -1,0 +1,40 @@
+{
+  "skill_name": "boilerplate",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Add a confirm dialog to our Next.js app (app router, Tailwind v4, shadcn tokens in globals.css). It's for deleting a project from the settings page.",
+      "expected_output": "Reads the project first (React 19, pnpm or whichever lockfile is there, app/ router, Tailwind v4, lucide). Adds components/ui/dialog.tsx from components/dialog.tsx with 'use client' first, `import { cn } from 'cn'` kept as shipped (installing the cn package even though the project has its own cn in lib/utils), every // look group restyled in the project's tokens (bg-background, border, rounded-lg, the project's ring) and every // behavior group untouched. Installs @base-ui/react and cn with the project's package manager, adds isolation: isolate to the wrapper inside the root layout's body (not body itself), and @source not lines so Tailwind doesn't read the skill's files or CLAUDE.md. Uses it on the settings page: Cancel first, Delete with the project's destructive button, disablePointerDismissal (a new dialog, so the reference's advice applies). Runs node scripts/check.mjs on the file to 'check passed' with no unfitted look, and the type check and build. Writes the UI components note and a look map into CLAUDE.md. Reports in the skill's block format, including what to try (Tab, Escape, swipe on a phone)."
+    },
+    {
+      "id": 2,
+      "prompt": "/boilerplate refactor select",
+      "expected_output": "Finds the project's existing select (shadcn's components/ui/select.tsx on Radix) and every import of it, and rebuilds it on Base UI and the cn package: no Radix import is left in the file, while @radix-ui stays installed for anything else that uses it. It inventories its tests and any [data-state] selectors that reach into it. Writes the inventory, maps it with the reference's table (SelectLabel kept as an alias, position='popper' turned into alignItemWithTrigger={false}, empty-string values turned into null), keeps the old classes as the look, and updates every call site in one change. Passes items to every Select whose trigger must show a label. check.mjs passes on the new file; type check, tests and build pass. The report lists call sites changed, aliases kept and what had no equivalent, and says that phones now get the platform's picker."
+    },
+    {
+      "id": 3,
+      "prompt": "we have a sidebar we wrote ourselves and honestly it's a mess on mobile. can you make it solid without changing how it looks?",
+      "expected_output": "Recognises this as a sidebar rebuild even though the skill isn't named. Checks the React version (Sidebar needs 19) before starting. Inventories the hand-written sidebar and its call sites, rebuilds it on references/sidebar.md keeping its classes as the look and its export names, adds SidebarClose to the header for the phone drawer, keeps every top-level row's icon first with a tooltip for the rail. check.mjs passes. The report explains the phone behavior gained (drawer, closes on navigation, focus trapped) and lists what had no equivalent."
+    },
+    {
+      "id": 4,
+      "prompt": "/boilerplate review",
+      "expected_output": "Changes nothing and installs nothing. Reports the stack, then one table row per component in the catalog: where the project's version lives (or none), its call sites, what a rebuild would gain (concrete behaviors from each reference), the cost (props without an equivalent, tests that query its DOM) and the command to run. Components that came from the boilerplate show their check.mjs result."
+    },
+    {
+      "id": 5,
+      "prompt": "add a date picker from the boilerplate",
+      "expected_output": "Says the boilerplate has no date picker, lists the six components it does have, and doesn't improvise one in their style."
+    },
+    {
+      "id": 6,
+      "prompt": "/boilerplate add input select",
+      "expected_output": "Adds Input first, then Select, from one reading of the project and one look map. Select's trigger is styled exactly like the input (same height, inset, border, focus ring), and Select's label and error use Input's Field parts instead of a second set. Both files pass check.mjs, and both are listed in CLAUDE.md with the look map. The report shows one block per component."
+    },
+    {
+      "id": 7,
+      "prompt": "Our project is on Tailwind 3.4. Add the menu component, with a right-click menu on the file rows.",
+      "expected_output": "Writes nothing yet. Says the boilerplate needs Tailwind CSS v4 (its components and the cn package are written for it), offers to run Tailwind's official upgrade with the project's package runner first and check the project's styles after, and continues with the menu only once the project is on v4. Never ports the component to v3 syntax."
+    }
+  ]
+}

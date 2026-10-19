@@ -1,0 +1,48 @@
+{
+  "generated": "by scripts/build-boilerplate.mjs from src/components/ui/skeleton.tsx; do not edit",
+  "skeleton": {
+    "behavior": [
+      "after:absolute",
+      "after:inset-0",
+      "after:mask-(--skeleton-shimmer)",
+      "after:mask-no-repeat",
+      "after:mask-size-[100%_100%]",
+      "after:pointer-events-none",
+      "after:z-1",
+      "before:absolute",
+      "before:inset-0",
+      "before:mask-(--skeleton-shapes)",
+      "before:mask-no-repeat",
+      "before:mask-size-[100%_100%]",
+      "before:pointer-events-none",
+      "before:z-1",
+      "data-loading:[&_:is([data-skeleton],[data-skeleton]_*):is(img,video,canvas)]:object-[0_-200vh]!",
+      "data-loading:[&_:is([data-skeleton],[data-skeleton]_*)]:[box-shadow:none]!",
+      "data-loading:[&_:is([data-skeleton],[data-skeleton]_*)]:bg-none!",
+      "data-loading:[&_:is([data-skeleton],[data-skeleton]_*)]:bg-transparent!",
+      "data-loading:[&_:is([data-skeleton],[data-skeleton]_*)]:border-transparent!",
+      "data-loading:[&_:is([data-skeleton],[data-skeleton]_*)]:decoration-transparent!",
+      "data-loading:[&_:is([data-skeleton],[data-skeleton]_*)]:placeholder:text-transparent!",
+      "data-loading:[&_:is([data-skeleton],[data-skeleton]_*)]:text-transparent!",
+      "data-loading:[&_:is([data-skeleton],[data-skeleton]_*)_svg_*]:invisible!",
+      "data-loading:[&_svg[data-skeleton]_*]:invisible!",
+      "data-loading:data-drawn:after:bg-(--skeleton-shine)",
+      "data-loading:data-drawn:before:bg-(--skeleton)",
+      "data-revealing:[&_:is([data-skeleton],[data-skeleton]_*)]:duration-200!",
+      "data-revealing:[&_:is([data-skeleton],[data-skeleton]_*)]:transition-[color,background-color,border-color,box-shadow]!",
+      "motion-reduce:data-revealing:[&_:is([data-skeleton],[data-skeleton]_*)]:transition-none!",
+      "relative"
+    ],
+    "look": [],
+    "slots": [
+      "skeleton"
+    ],
+    "exports": [
+      "Skeleton"
+    ],
+    "imports": [
+      "@base-ui/react/use-render",
+      "cn"
+    ]
+  }
+}

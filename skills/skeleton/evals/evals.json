@@ -1,0 +1,60 @@
+{
+  "skill_name": "skeleton",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Add a loading state to the orders table in our Next.js app (app router, Tailwind v4, TanStack Query, shadcn tokens in globals.css). Each row has the customer's avatar, their name, the order total, a status badge and a 'View' button.",
+      "expected_output": "Reads the project first (React 19, the lockfile's package manager, app router, Tailwind v4, TanStack Query, the table and row components). Installs @base-ui/react and cn with that package manager, copies components/skeleton.tsx into components/ui with 'use client' first and `import { cn } from 'cn'` kept, and sets --skeleton (the muted fill) and --skeleton-shine (lighter, toward the background, and lighter in dark mode too) in globals.css with @source not lines for the skill's files. Marks the avatar img, the name, the total and the badge's text with data-skeleton in the row component; leaves the column headers, row dividers and the View button unmarked. Writes a typed placeholderOrders with 3 invented rows of typical lengths and a transparent-pixel avatar, passes it as placeholderData, and wraps the table body in <Skeleton render={<tbody />} loading={isPlaceholderData}>. Draws no gray blocks by hand. Runs check.mjs to 'check passed', the type check and build, and looks at it loading in the browser at desktop and 375px, light and dark: names and totals are borderless bars, avatars striped circles, the button and headers show as themselves. Writes the skeleton and the marking rule into CLAUDE.md, and reports in the skill's block format."
+    },
+    {
+      "id": 2,
+      "prompt": "/skeleton refactor",
+      "expected_output": "Lists the project's loading states first (shadcn Skeleton blocks in components/feed-skeleton.tsx used as a Suspense fallback, a spinner in the profile card, an animate-pulse placeholder in the sidebar) and rebuilds each on the real component: marks the data elements in Feed, ProfileCard and the sidebar's list, writes placeholder data for each (3 feed items; an invented profile), and renders the component inside Skeleton (the Suspense fallback becomes <Skeleton loading><Feed items={placeholderFeed} /></Skeleton>). Deletes feed-skeleton.tsx and every import of it. shadcn's components/ui/skeleton.tsx is replaced by this file with the same export. check.mjs passes; the report lists what was marked, what stays static, and what was deleted."
+    },
+    {
+      "id": 3,
+      "prompt": "our product grid's skeleton cards look nothing like the real cards, can you fix it?",
+      "expected_output": "Treats it as a refactor of the product grid's loading state, even without the word skeleton. Finds the hand-made ProductCardSkeleton and replaces it with the real ProductCard rendered with placeholder products (a few cards, typical name and price lengths, a transparent-pixel image with the image's width and height kept), its name, price and image marked, its 'Add to cart' button and static labels unmarked. Deletes ProductCardSkeleton. Shows that the skeletons now sit inside the real card's own border and padding, with the product photo as a bordered striped plate, and says the real grid may have more cards than the placeholder, which is expected."
+    },
+    {
+      "id": 4,
+      "prompt": "Can you mark the whole card as a skeleton, buttons and icons and the divider too? It looks unfinished with those showing while it loads.",
+      "expected_output": "Doesn't mark the static parts: only elements that show data get a skeleton, and buttons, static icons and dividers are part of the design that's already there. Explains that in a sentence or two (the screen should look like itself while it loads, with skeletons only where data goes), and checks the marks are right: every data value marked, nothing static. If the user still wants the card hidden, offers the honest alternative of not rendering the static chrome until the data arrives, without adding skeletons to it."
+    },
+    {
+      "id": 5,
+      "prompt": "Add a skeleton to the inbox list. For the placeholder, just copy a few real messages from my inbox so it looks realistic.",
+      "expected_output": "Doesn't copy real messages: the placeholder ships in the bundle to every visitor, and an inbox is personal data. Writes invented placeholder messages of typical length (sender names, subject lines, previews, dates), 3 rows, typed like the real messages, marks the sender, subject, preview and date in the row component, and wraps the list in Skeleton. Says why in one sentence."
+    },
+    {
+      "id": 6,
+      "prompt": "Our project is on Tailwind 3.4 and React 18. Add a skeleton to the dashboard cards.",
+      "expected_output": "Writes nothing yet. Says the skeleton needs Tailwind CSS v4 and React 19, offers Tailwind's official upgrade (@tailwindcss/upgrade with the project's package runner) and the React upgrade first, and continues only once the project is on both. Never ports the component to v3 syntax or to React 18."
+    },
+    {
+      "id": 7,
+      "prompt": "Can you add a shimmer skeleton over the blog post page while it loads? It's a static Astro site.",
+      "expected_output": "Notices the post is already in the HTML of a static build, so there is nothing to wait for: a skeleton over content that's already there only delays it. Says so and doesn't add one there; offers skeletons only for parts that load on the client (comments, a related-posts island), each marked and rendered with placeholder data."
+    },
+    {
+      "id": 8,
+      "prompt": "Make the text skeletons outlined like the image ones, and drop the stripes from the images, they look busy.",
+      "expected_output": "Keeps the drawing rules: text skeletons are borderless bars and pictures are bordered striped plates, so a picture never reads as text and a screen full of skeletons reads as one system. Explains that in a sentence, and offers what's adjustable instead: the stripes' spacing (STRIPES) and the colors (--skeleton, --skeleton-shine) for a calmer look. Changes nothing in the drawing rules unless the user insists, and then names the change in the report and in CLAUDE.md."
+    },
+    {
+      "id": 9,
+      "prompt": "/skeleton chart the weekly orders bar chart on the dashboard",
+      "expected_output": "Finds the chart in the code (a Recharts BarChart in a ResponsiveContainer, height 220, YAxis width 40, XAxis below, 7 days of data, no legend, CartesianGrid with vertical={false}) and writes the spec before any SVG: type, size (width measured from the card, height 220), frame (yAxis 48 with its gap, xAxis 24), 7 bars, 4 dashed rows and a baseline, 5 y labels and 7 day labels, no legend. Installs @frontendsupply/chart-skeletons with the project's package manager and renders <BarChartSkeleton {...size} bars={7} margins={{ yAxis: 48, xAxis: 24 }} /> in the chart's place while the query is pending, inside the region's Skeleton, with the measuring box outside the Skeleton. Doesn't mark the chart itself. Runs scripts/check-drawing.mjs on the drawing's markup at the chart's size and at about 343 wide, both 'check passed', and looks at it loading beside the loaded chart: the axes, bars and labels land where the chart's do. Reports the spec and the check."
+    },
+    {
+      "id": 10,
+      "prompt": "Here's a screenshot of our revenue widget (revenue.png, 1200×560). Make me a skeleton for the chart in it.",
+      "expected_output": "Measures the screenshot before drawing: the axis labels are about 22px tall, so it's 2× and the chart is about 600×280 in CSS pixels, less the card's padding and title, which stay as they are. Counts what's there: 2 series (two colors) with about 30 points each, a legend on top with 2 entries, y labels on the left, x labels every few days below, horizontal dashed gridlines. Writes the spec (type, size, frame, marks, labels, legend, grid), then renders <LineChartSkeleton width={…} height={…} series={2} points={30} legend=\"top\" margins={…} /> (or composes it with the kit if the frame differs), with no text, colors or stripes beyond the vocabulary. Runs check-drawing.mjs to 'check passed' and shows the drawing beside the screenshot, naming the measured size and the 2× scale it assumed."
+    },
+    {
+      "id": 11,
+      "prompt": "Just put a striped box over the charts while they load, the drawings are too much work. Or draw a generic line chart for all of them.",
+      "expected_output": "Keeps rule 4: a chart that loads gets a drawing of itself, because its shape is known before its numbers and a plate or a generic chart says the wrong thing and makes the handover jump. Explains that in a sentence or two, then shows it's little work: for each chart, the matching package component with its count (BarChartSkeleton bars={7}, DonutChartSkeleton slices={4}, …) at its measured size. Draws the charts that way, checks each with check-drawing.mjs, and only uses a striped plate for actual pictures."
+    }
+  ]
+}
