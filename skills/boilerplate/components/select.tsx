@@ -609,7 +609,7 @@ export function SelectGroupLabel({ className, ...props }: WithClassName<BaseSele
         // behavior
         'flex items-center select-none',
         // look. On the rows' inset, as their text is.
-        'h-7 px-1.5 font-sans text-[10.5px] font-medium tracking-[0.14em] text-soft uppercase',
+        'h-7 px-1.5 font-sans text-[11px] font-medium tracking-widest text-soft uppercase',
         className,
       )}
       {...props}

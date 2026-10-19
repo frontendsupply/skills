@@ -907,7 +907,7 @@ export const SidebarGroupLabel = part(
   'div',
   'sidebar-group-label',
   cn(rowBehavior, hiddenInRail, fadeOnPeekClose, 'has-[~[data-slot=sidebar-group-action]]:pr-8'),
-  cn(rowLook, 'text-[10.5px] font-medium tracking-[0.14em] text-soft uppercase [button]:hover:text-strong'),
+  cn(rowLook, 'text-[11px] font-medium tracking-widest text-soft uppercase [button]:hover:text-strong'),
 );
 // Sits on the label row (top-right of the group): group padding + the trailing inset above.
 // Kept outside the label so it never nests in a trigger.

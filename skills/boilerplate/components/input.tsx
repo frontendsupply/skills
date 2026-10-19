@@ -877,7 +877,7 @@ export function AutocompleteGroupLabel({ className, ...props }: WithClassName<Ba
         'sticky z-10 flex items-center select-none',
         // look. `-top-1` cancels the panel's padding (p-1): sticky offsets count from inside it. The fill hides the rows
         // scrolling under it.
-        '-top-1 h-7 bg-base px-2 text-[10.5px] font-medium tracking-[0.14em] text-soft uppercase',
+        '-top-1 h-7 bg-base px-2 text-[11px] font-medium tracking-widest text-soft uppercase',
         className,
       )}
       {...props}

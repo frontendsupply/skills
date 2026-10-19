@@ -97,7 +97,7 @@ defined = projectNames(projectRoot(args[0]));
 
 // The shipped look's own type and shape (this site's serif, its exact sizes, tracking, its 2px radius): left as they
 // are, they're not the project's look. A warning only: the project may happen to share one.
-const shippedLook = (token) => /^(?:[\w-]+:)*(?:font-serif|rounded-xs|text-\[\d|tracking-\[|leading-\[|shadow-\[)/.test(token);
+const shippedLook = (token) => /^(?:[\w-]+:)*(?:font-serif|rounded-xs|text-\[\d|tracking-(?:\[|widest)|leading-\[|shadow-\[)/.test(token);
 
 if (forced && !components[forced]) {
   console.error(`unknown component "${forced}"; one of: ${Object.keys(components).join(', ')}`);

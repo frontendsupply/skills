@@ -237,7 +237,7 @@ export function MenuGroupLabel({ className, ...props }: WithClassName<BaseMenu.G
         // behavior
         'flex items-center',
         // look
-        'h-7 px-2 text-[10.5px] font-medium tracking-[0.14em] text-soft uppercase',
+        'h-7 px-2 text-[11px] font-medium tracking-widest text-soft uppercase',
         className,
       )}
       {...props}

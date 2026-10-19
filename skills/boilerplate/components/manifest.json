@@ -193,6 +193,7 @@
         "font-medium",
         "font-serif",
         "h-1",
+        "leading-5",
         "leading-7",
         "max-w-md",
         "mb-3",
@@ -210,7 +211,7 @@
         "text-sm",
         "text-soft",
         "text-strong",
-        "tracking-[-0.01em]",
+        "tracking-tight",
         "w-10"
       ],
       "slots": [
@@ -358,14 +359,13 @@
         "rounded-xs",
         "scroll-py-1",
         "tabular-nums",
-        "text-[10.5px]",
         "text-[11px]",
         "text-[13px]",
         "text-danger-dark",
         "text-soft",
         "text-strong",
         "text-xs",
-        "tracking-[0.14em]",
+        "tracking-widest",
         "uppercase"
       ],
       "slots": [
@@ -510,12 +510,11 @@
         "rounded-sm",
         "rounded-xs",
         "shadow-[0_1px_0_var(--stroke-soft)]",
-        "text-[10.5px]",
         "text-[11px]",
         "text-[13px]",
         "text-soft",
         "text-strong",
-        "tracking-[0.14em]",
+        "tracking-widest",
         "uppercase"
       ],
       "slots": [
@@ -685,11 +684,11 @@
         "rounded-sm",
         "rounded-t-[calc(var(--select-radius)-1px)]",
         "rounded-xs",
-        "text-[10.5px]",
+        "text-[11px]",
         "text-[13px]",
         "text-soft",
         "text-strong",
-        "tracking-[0.14em]",
+        "tracking-widest",
         "uppercase"
       ],
       "slots": [
@@ -913,7 +912,6 @@
         "shadow-[0_8px_24px_-12px_rgb(0_0_0/0.3)]",
         "size-6",
         "size-8",
-        "text-[10.5px]",
         "text-[11px]",
         "text-[12px]",
         "text-[13px]",
@@ -921,7 +919,7 @@
         "text-soft",
         "text-strong",
         "text-sub",
-        "tracking-[0.14em]",
+        "tracking-widest",
         "uppercase",
         "w-1.5"
       ],

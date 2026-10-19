@@ -247,7 +247,7 @@ const surfaceClassName = cn(
   // look. The radius is set once, through --dialog-radius: the stack trims cards with a clip-path
   // rounded to it. The popup takes focus when its content is taller than the screen (see
   // initialFocus), so it needs a focus ring.
-  '[--dialog-radius:4px] border-soft bg-base text-sm text-strong focus-visible:ring-2 focus-visible:ring-primary',
+  '[--dialog-radius:4px] border-soft bg-base text-sm leading-5 text-strong focus-visible:ring-2 focus-visible:ring-primary',
 );
 
 /* -------------------------------------------------------------------------- */
@@ -629,7 +629,7 @@ export function DialogTitle({ className, ...props }: WithClassName<BaseDialog.Ti
       data-slot="dialog-title"
       className={cn(
         // look
-        'font-serif text-[22px] leading-7 font-medium tracking-[-0.01em] text-strong',
+        'font-serif text-[22px] leading-7 font-medium tracking-tight text-strong',
         className,
       )}
       {...props}
