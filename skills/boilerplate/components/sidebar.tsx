@@ -813,8 +813,9 @@ export function SidebarContent({ className, children, ...props }: ScrollArea.Roo
       >
         {/* Base UI sizes the content to fit its widest child (`min-width: fit-content`, for sideways scrolling). A
             sidebar never scrolls sideways: held to the viewport's width, a long label truncates instead of widening
-            every row past the edge and pushing badges and actions out of sight. */}
-        <ScrollArea.Content className="min-w-0!">{children}</ScrollArea.Content>
+            every row past the edge and pushing badges and actions out of sight. Base UI sets that width inline, and
+            a style prop is merged over its own. */}
+        <ScrollArea.Content style={{ minWidth: 0 }}>{children}</ScrollArea.Content>
       </ScrollArea.Viewport>
       <ScrollArea.Scrollbar
         className={cn(
@@ -859,7 +860,7 @@ function part<T extends React.ElementType>(defaultTagName: T, slot: string, beha
 // visually hidden, so the row keeps its accessible name.
 const rowBehavior = cn(
   'flex w-full min-w-0 items-center text-left outline-hidden select-none [&>svg]:shrink-0 [&>span]:truncate',
-  'group-data-[state=collapsed]/sidebar:size-8 group-data-[state=collapsed]/sidebar:justify-center group-data-[state=collapsed]/sidebar:p-0! group-data-[state=collapsed]/sidebar:[&>:not(:first-child)]:sr-only',
+  'group-data-[state=collapsed]/sidebar:size-8 group-data-[state=collapsed]/sidebar:justify-center group-data-[state=collapsed]/sidebar:p-0 group-data-[state=collapsed]/sidebar:[&>:not(:first-child)]:sr-only',
 );
 // Hidden in the rail: there's no room, and the rail shows one icon per row.
 const hiddenInRail = 'group-data-[state=collapsed]/sidebar:hidden';
@@ -1023,9 +1024,10 @@ export function SidebarMenuButton({
       className: cn(
         // behavior. Leaves room for a trailing badge or action: its width + the trailing inset (4px) + a 4px gap, and
         // at least pr-8. A badge reports its own width, so a long count still clears the label. Matched on the
-        // button's own next siblings, never an ancestor's, so nested rows don't inherit it.
+        // button's own next siblings, never an ancestor's, so nested rows don't inherit it. Not in the rail, where the
+        // row is a square with no label to clear (and its p-0 has to hold).
         rowBehavior,
-        'peer/menu-button has-[~[data-slot=sidebar-menu-action]]:pr-8 has-[~[data-slot=sidebar-menu-badge]]:pr-[max(2rem,calc(var(--sidebar-menu-badge-width,1.5rem)+0.5rem))]',
+        'peer/menu-button group-not-data-[state=collapsed]/sidebar:has-[~[data-slot=sidebar-menu-action]]:pr-8 group-not-data-[state=collapsed]/sidebar:has-[~[data-slot=sidebar-menu-badge]]:pr-[max(2rem,calc(var(--sidebar-menu-badge-width,1.5rem)+0.5rem))]',
         // Peek mode (see fadeOnPeekClose): closing, the row's content but its first child (the icon) fades out. Its
         // fill stays (the current row's slip), shrinking with the panel's edge as it grew with it on opening.
         'group-data-[collapsible=peek]/sidebar:*:transition-opacity group-data-[collapsible=peek]/sidebar:*:duration-100 group-data-[peek=closing]/sidebar:[&>:not(:first-child)]:opacity-0',

@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { flushSync } from 'react-dom';
 import { useRender } from '@base-ui/react/use-render';
 import { cn } from 'cn';
 
@@ -9,21 +10,19 @@ import { cn } from 'cn';
 /* bars, one per line; its pictures as striped plates with a 1px border; its  */
 /* icons as 1px circles; a chart's drawing (an svg[data-skeleton="drawing"])  */
 /* as its own lines; anything else as a 1px outline. Everything not marked    */
-/* (labels, dividers, buttons, static icons) shows as itself. Outlines        */
-/* trace in clockwise, then one shimmer sweeps across every skeleton. Two     */
-/* colors: --skeleton and --skeleton-shine.                                   */
+/* (labels, dividers, buttons, static icons) shows as itself. Outlines trace  */
+/* in clockwise and the data fades in. One color: --skeleton.                 */
 /*                                                                            */
-/* The drawing is two SVG masks, measured from the marked elements, on the    */
-/* wrapper's ::before (the skeletons) and ::after (the shimmer). Turning it   */
-/* on changes only paint: the placeholder's layout stays as it is.            */
+/* The drawing is an <svg> inside the wrapper, over the content, measured     */
+/* from the marked elements at the wrapper's exact size. Turning it on        */
+/* changes only paint: the placeholder's layout stays as it is.               */
 /* -------------------------------------------------------------------------- */
 
-// The trace: every outline draws itself clockwise from its top left in TRACE_MS; outlines start in document order across
-// STAGGER_MS. Then the shimmer: a band crossing in SHIMMER_MS, again and again. When `loading` ends, the data fades in
-// over REVEAL_MS (the 200ms transitions below).
+// The trace: every outline draws itself clockwise from its top left in TRACE_MS (the duration-600 below); outlines start
+// in document order across STAGGER_MS, and a plate's stripes fade in halfway through its trace. When `loading` ends, the
+// data fades in over REVEAL_MS (the duration-200 below).
 const TRACE_MS = 600;
 const STAGGER_MS = 400;
-const SHIMMER_MS = 1500;
 const REVEAL_MS = 200;
 // The look of the drawing: a line of text is a bar from 20% to 80% of its height; a plate's stripes are 45°, 6px apart;
 // an SVG up to 32px is an icon (a circle), a larger one a picture (a plate); a drawing's guides are dashed 2px on, 3px
@@ -40,24 +39,35 @@ const MEDIA = 'img, video, canvas, picture, svg';
 const DRAWING = 'svg[data-skeleton="drawing"]';
 const PARTS = ['line', 'guide', 'fill', 'stripes'] as const;
 const REDUCED_MOTION = '(prefers-reduced-motion: reduce)';
+const DRAWN = '[data-slot=skeleton-drawing]';
 
 const skeletonClassName = cn(
-  // behavior: the drawing's two layers cover the wrapper, over the content, never catching the pointer: the skeletons
-  // (::before, --skeleton) and the shimmer over them (::after, --skeleton-shine), each masked by an SVG measured from
-  // the marked elements, at the wrapper's exact size so nothing is scaled
-  'relative before:pointer-events-none before:absolute before:inset-0 before:z-1 after:pointer-events-none after:absolute after:inset-0 after:z-1',
-  'before:mask-(--skeleton-shapes) after:mask-(--skeleton-shimmer) before:mask-size-[100%_100%] after:mask-size-[100%_100%] before:mask-no-repeat after:mask-no-repeat',
-  'data-loading:data-drawn:before:bg-(--skeleton) data-loading:data-drawn:after:bg-(--skeleton-shine)',
-  // behavior: while loading, a marked element keeps its box and paints nothing (text, background, border, shadow,
-  // decoration; pictures move out of view, icons' shapes hide): its skeleton is drawn in its place. Important, so a
-  // project's own rules (often unlayered) can't show through
-  'data-loading:[&_:is([data-skeleton],[data-skeleton]_*)]:text-transparent! data-loading:[&_:is([data-skeleton],[data-skeleton]_*)]:placeholder:text-transparent! data-loading:[&_:is([data-skeleton],[data-skeleton]_*)]:decoration-transparent!',
-  'data-loading:[&_:is([data-skeleton],[data-skeleton]_*)]:border-transparent! data-loading:[&_:is([data-skeleton],[data-skeleton]_*)]:bg-transparent! data-loading:[&_:is([data-skeleton],[data-skeleton]_*)]:bg-none! data-loading:[&_:is([data-skeleton],[data-skeleton]_*)]:[box-shadow:none]!',
-  'data-loading:[&_:is([data-skeleton],[data-skeleton]_*):is(img,video,canvas)]:object-[0_-200vh]! data-loading:[&_:is([data-skeleton],[data-skeleton]_*)_svg_*]:invisible! data-loading:[&_svg[data-skeleton]_*]:invisible!',
-  // behavior: when the data arrives, the marked elements fade from transparent to their own paint; with reduced motion,
-  // at once
-  'data-revealing:[&_:is([data-skeleton],[data-skeleton]_*)]:transition-[color,background-color,border-color,box-shadow]! data-revealing:[&_:is([data-skeleton],[data-skeleton]_*)]:duration-200!',
-  'motion-reduce:data-revealing:[&_:is([data-skeleton],[data-skeleton]_*)]:transition-none!',
+  // behavior: the wrapper holds the drawing. While loading, a marked element keeps its box and shows nothing (opacity
+  // 0 hides it and everything in it, its colors, borders, pictures and icons, inline styles included): its skeleton is
+  // drawn in its place. The selector (a class, a state, an attribute) outranks any one utility on the element, its
+  // hover and focus states too
+  'relative data-loading:[&_[data-skeleton]]:opacity-0',
+  // behavior: when the data arrives, the marked elements fade in. With reduced motion there's no revealing state, so
+  // they appear at once
+  'data-revealing:[&_[data-skeleton]]:transition-opacity data-revealing:[&_[data-skeleton]]:duration-200',
+);
+
+const drawingClassName = cn(
+  // behavior: the drawing lies over the wrapper's padding box, never catching the pointer. Its size (exact, with no
+  // viewBox, so nothing is scaled and a 1px line stays 1px) and its color (--skeleton) are inline styles, which a
+  // project's own rules for svgs inside it (`[&_svg]:size-4`, `[&_svg]:text-soft`) can't override
+  'pointer-events-none absolute top-0 left-0 overflow-visible',
+);
+
+const traceClassName = cn(
+  // behavior: an outline traces itself in once, from the moment it's drawn: its whole length (pathLength 1) dashed
+  // away at first. Reduced motion: drawn at once
+  'starting:[stroke-dashoffset:1] transition-[stroke-dashoffset] duration-600 ease-[cubic-bezier(.65,0,.35,1)] motion-reduce:transition-none',
+);
+
+const fadeClassName = cn(
+  // behavior: a bar, a label or stripes fade in once, from the moment they're drawn. Reduced motion: at once
+  'starting:opacity-0 transition-opacity duration-300 ease-out motion-reduce:transition-none',
 );
 
 type Box = { x: number; y: number; w: number; h: number };
@@ -170,84 +180,76 @@ function outline(s: Shape): string {
     : `M${x} ${y + r}${arc(x + w, y + r)}V${y + h - r}${arc(x, y + h - r)}Z`;
 }
 
-// `id` makes a drawing new: the browser keeps an animated image's timeline with its URL, so a second loading with the
-// same content would otherwise start where the first one ended.
-const svg = (w: number, h: number, body: string, id: string) =>
-  `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" id="${id}">${body}</svg>`)}")`;
+// What a loading draws: the wrapper's padding box (which the drawing covers, at its exact size) and the shapes in it.
+type Measured = { width: number; height: number; shapes: Shape[] };
 
-// The skeletons and the shimmer: traced in and shimmering when `animate`, shimmering without a second trace on a
-// redraw, both still for reduced motion. Sized to root's padding box exactly (it can be fractional), so the masks are
-// never scaled and a 1px line stays 1px.
-function draw(root: HTMLElement, shapes: Shape[], id: string, animate: boolean, still: boolean) {
+// A change to the drawing itself, not to the content under it.
+function ours(record: MutationRecord) {
+  const target = record.target instanceof Element ? record.target : record.target.parentElement;
+  if (target?.closest(DRAWN)) return true;
+  const nodes = [...record.addedNodes, ...record.removedNodes];
+  return nodes.length > 0 && nodes.every((node) => node instanceof Element && node.matches(DRAWN));
+}
+
+function paddingBox(root: HTMLElement) {
   const rect = root.getBoundingClientRect();
   const style = getComputedStyle(root);
-  const w = rect.width - parseFloat(style.borderLeftWidth) - parseFloat(style.borderRightWidth);
-  const h = rect.height - parseFloat(style.borderTopWidth) - parseFloat(style.borderBottomWidth);
-  // Read now, with the size: after the first write below, a read would make the browser recompute styles again.
-  const rtl = style.direction === 'rtl';
+  return {
+    width: rect.width - parseFloat(style.borderLeftWidth) - parseFloat(style.borderRightWidth),
+    height: rect.height - parseFloat(style.borderTopWidth) - parseFloat(style.borderBottomWidth),
+  };
+}
+
+// The drawing: every shape where its element is, in --skeleton. Outlines trace in and the rest fades in, each once, as
+// it's first drawn: a redraw moves what's there and draws only what's new. `stripes` is the pattern's id.
+function Drawing({ width, height, shapes, stripes }: Measured & { stripes: string }) {
   const outlines = shapes.filter((s) => !s.bar).length;
-  let body = '';
-  let lit = '';
   let i = 0;
-  for (const s of shapes) {
-    // A drawing: its parts at its place, each drawn as what it is; it traces in as one outline.
-    if (s.drawing) {
-      const delay = animate ? Math.round((i++ / Math.max(outlines - 1, 1)) * STAGGER_MS) : 0;
-      const at = (ms: number) => (animate ? ` style="animation-delay:${ms}ms"` : '');
-      const open = `<svg x="${s.x}" y="${s.y}" width="${s.w}" height="${s.h}" viewBox="${s.drawing.viewBox}" overflow="visible">`;
-      let own = '';
-      let shine = '';
-      for (const { kind, d } of s.drawing.parts) {
-        if (kind === 'line') own += `<path class="t" pathLength="1" d="${d}"${at(delay)}/>`;
-        if (kind === 'guide') own += `<path class="u" d="${d}"${at(delay)}/>`;
-        if (kind === 'fill') own += `<path${animate ? ' class="b"' : ''} d="${d}"${at(delay)}/>`;
-        if (kind === 'stripes') own += `<path class="p" d="${d}"${at(delay + TRACE_MS / 2)}/>`;
-        shine +=
-          kind === 'fill' ? `<path d="${d}" fill="#fff"/>` : kind === 'stripes' ? `<path d="${d}" fill="url(#lit)"/>` : `<path d="${d}" fill="none" stroke="#fff"${kind === 'guide' ? ` stroke-dasharray="${DASH}"` : ''}/>`;
-      }
-      body += `${open}${own}</svg>`;
-      lit += `${open}${shine}</svg>`;
-      continue;
-    }
-    const area = s.round ? `<path d="${outline(s)}"` : `<rect x="${s.x}" y="${s.y}" width="${s.w}" height="${s.h}"`;
-    if (s.bar) {
-      body += `${area}${animate ? ' class="b"' : ''}/>`;
-      lit += `${area} fill="#fff"/>`;
-      continue;
-    }
-    const delay = animate ? Math.round((i++ / Math.max(outlines - 1, 1)) * STAGGER_MS) : 0;
-    if (s.stripes) body += `${area} class="p"${animate ? ` style="animation-delay:${delay + TRACE_MS / 2}ms"` : ''}/>`;
-    body += `<path class="t" pathLength="1" d="${outline(s)}"${animate ? ` style="animation-delay:${delay}ms"` : ''}/>`;
-    lit += `<path d="${outline(s)}" fill="none" stroke="#fff"/>${s.stripes ? `${area} fill="url(#lit)"/>` : ''}`;
-  }
-  const stripes = (name: string, fill: string) =>
-    `<pattern id="${name}" width="${STRIPES}" height="${STRIPES}" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="1" height="${STRIPES}" fill="${fill}"/></pattern>`;
-  const trace = animate
-    ? `.t{stroke-dasharray:1;stroke-dashoffset:1;animation:t ${TRACE_MS}ms cubic-bezier(.65,0,.35,1) forwards}.p,.b,.u{opacity:0;animation:p ${TRACE_MS / 2}ms ease-out forwards}@keyframes t{to{stroke-dashoffset:0}}@keyframes p{to{opacity:1}}`
-    : '';
-  root.style.setProperty(
-    '--skeleton-shapes',
-    svg(w, h, `<defs>${stripes('stripes', '#000')}</defs><style>.t{fill:none;stroke:#000;stroke-width:1px;stroke-linecap:square}.u{fill:none;stroke:#000;stroke-width:1px;stroke-dasharray:${DASH}}.p{fill:url(#stripes)}${trace}</style>${body}`, `${id}s`),
+  // Outlines start in document order across STAGGER_MS; a plate's stripes once its outline is halfway round.
+  const next = () => Math.round((i++ / Math.max(outlines - 1, 1)) * STAGGER_MS);
+  const after = (ms: number) => ({ transitionDelay: `${ms}ms` });
+  const line = { fill: 'none', stroke: 'currentColor', strokeLinecap: 'square', pathLength: 1, strokeDasharray: 1, className: traceClassName } as const;
+  const striped = `url(#${stripes})`;
+  return (
+    <svg data-slot="skeleton-drawing" aria-hidden="true" className={drawingClassName} style={{ width, height, color: 'var(--skeleton)' }}>
+      <defs>
+        <pattern id={stripes} width={STRIPES} height={STRIPES} patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+          <rect width={1} height={STRIPES} fill="currentColor" />
+        </pattern>
+      </defs>
+      {shapes.map((s, key) => {
+        if (s.bar) return <rect key={key} x={s.x} y={s.y} width={s.w} height={s.h} fill="currentColor" className={fadeClassName} />;
+        const ms = next();
+        // A chart's drawing: its own parts, at its place; it starts as one outline.
+        if (s.drawing)
+          return (
+            <svg key={key} x={s.x} y={s.y} viewBox={s.drawing.viewBox} overflow="visible" style={{ width: s.w, height: s.h }}>
+              {s.drawing.parts.map(({ kind, d }, part) =>
+                kind === 'line' ? (
+                  <path key={part} d={d} {...line} style={after(ms)} />
+                ) : kind === 'guide' ? (
+                  <path key={part} d={d} fill="none" stroke="currentColor" strokeDasharray={DASH} className={fadeClassName} style={after(ms)} />
+                ) : (
+                  <path key={part} d={d} fill={kind === 'fill' ? 'currentColor' : striped} className={fadeClassName} style={after(kind === 'fill' ? ms : ms + TRACE_MS / 2)} />
+                ),
+              )}
+            </svg>
+          );
+        return (
+          <React.Fragment key={key}>
+            {s.stripes &&
+              (s.round ? (
+                <path d={outline(s)} fill={striped} className={fadeClassName} style={after(ms + TRACE_MS / 2)} />
+              ) : (
+                <rect x={s.x} y={s.y} width={s.w} height={s.h} fill={striped} className={fadeClassName} style={after(ms + TRACE_MS / 2)} />
+              ))}
+            <path d={outline(s)} {...line} style={after(ms)} />
+          </React.Fragment>
+        );
+      })}
+    </svg>
   );
-  // The shimmer: a soft band crossing the whole width, seen only through the skeletons. It waits for the trace, and
-  // runs the other way on right-to-left pages. Empty (nothing to paint) for reduced motion.
-  const band = Math.min(Math.max(w * 0.35, 120), 320);
-  const shimmer = still
-    ? ''
-    : `<defs>${stripes('lit', '#fff')}<linearGradient id="g"><stop offset="0" stop-opacity="0"/><stop offset=".5"/><stop offset="1" stop-opacity="0"/></linearGradient><mask id="m" maskUnits="userSpaceOnUse" x="0" y="0" width="${w}" height="${h}">${lit}</mask></defs>` +
-      `<style>.s{transform:translateX(${-band}px);animation:s ${SHIMMER_MS}ms ease-in-out ${animate ? TRACE_MS + STAGGER_MS : 0}ms infinite${rtl ? ' reverse' : ''}}@keyframes s{from{transform:translateX(${-band}px)}to{transform:translateX(${w}px)}}</style>` +
-      `<g mask="url(#m)"><rect class="s" width="${band}" height="${h}" fill="url(#g)"/></g>`;
-  root.style.setProperty('--skeleton-shimmer', svg(w, h, shimmer, `${id}m`));
-  root.dataset.drawn = '';
 }
-
-function clear(root: HTMLElement) {
-  root.style.removeProperty('--skeleton-shapes');
-  root.style.removeProperty('--skeleton-shimmer');
-  delete root.dataset.drawn;
-}
-
-let drawings = 0;
 
 type SkeletonProps = useRender.ComponentProps<'div'> & {
   /** Draws the marked elements as skeletons. Set it while the content shows placeholder data. */
@@ -256,60 +258,68 @@ type SkeletonProps = useRender.ComponentProps<'div'> & {
 
 type State = 'loading' | 'revealing' | 'idle';
 
-export function Skeleton({ loading = false, render, className, ref, ...props }: SkeletonProps) {
+export function Skeleton({ loading = false, render, className, ref, children, ...props }: SkeletonProps) {
   // Follows `loading` in the same render, both ways: the render that brings the data is already revealing, so no frame
   // ever paints the old skeletons over the new content.
   const [state, setState] = React.useState<State>(loading ? 'loading' : 'idle');
   if (loading && state !== 'loading') setState('loading');
   if (!loading && state === 'loading') setState(window.matchMedia(REDUCED_MOTION).matches ? 'idle' : 'revealing');
+  const [drawn, setDrawn] = React.useState<Measured | null>(null);
+  const stripes = `skeleton-stripes-${React.useId().replace(/[^\w-]/g, '')}`;
   const own = React.useRef<HTMLDivElement>(null);
 
   // While loading: drawn once, where the text really is: measured before the first paint, or once the fonts are in if
   // they're still loading (until then the marked elements are blank, never a guess that moves when the fonts land). Then
-  // redrawn only when the size or the content moves a skeleton.
+  // redrawn only when the wrapper's size or the content moves a skeleton.
   React.useLayoutEffect(() => {
     const root = own.current;
     if (state !== 'loading' || !root) return;
     if (!root.querySelector(MARKED)) console.warn('Skeleton: nothing inside is marked data-skeleton, so no skeleton is drawn.', root);
-    const id = `s${++drawings}`;
-    const still = window.matchMedia(REDUCED_MOTION).matches;
     let frame = 0;
-    let drawn = '';
-    let traced = false;
+    let last = '';
     let live = true;
-    // The first drawing with something in it traces in; later ones only when something moved, and still.
-    const redraw = (shapes = measure(root)) => {
-      frame = 0;
-      const now = JSON.stringify(shapes);
-      if (now !== drawn) draw(root, shapes, id, !traced && !still, still);
-      drawn = now;
-      traced ||= shapes.length > 0;
+    // The drawing for now, or null if it's the one already drawn. The size counts on its own: the drawing is the
+    // wrapper's exact size, so a wrapper that grows around content that stays put needs a new one.
+    const fresh = (shapes = measure(root)) => {
+      const next = { ...paddingBox(root), shapes };
+      const now = JSON.stringify(next);
+      if (now === last) return null;
+      last = now;
+      return next;
     };
     // Measured first: laying the text out is what starts loading a font it needs, so only then is the fonts' status
-    // known.
+    // known. Drawn in this effect, so before the first paint (or once the fonts are in).
     const first = measure(root);
-    if (document.fonts?.status === 'loading') document.fonts.ready.then(() => live && !drawn && redraw());
-    else redraw(first);
-    // A resize redraws at once: the observer runs after layout and before paint, so the new drawing lands in the same
-    // frame as the new layout, never a frame of the old one stretched over it. Content changes wait for a frame.
+    if (document.fonts?.status === 'loading')
+      document.fonts.ready.then(() => {
+        const next = live && !last ? fresh() : null;
+        if (next) setDrawn(next);
+      });
+    else setDrawn(fresh(first));
+    // Later, synchronously, so a redraw lands in the frame its layout does: a resize at once (the observer runs after
+    // layout and before paint), a content change in the next frame. The drawing's own changes aren't content.
+    const redraw = () => {
+      frame = 0;
+      const next = last ? fresh() : null;
+      if (next) flushSync(() => setDrawn(next));
+    };
     const resize = new ResizeObserver(() => {
-      if (!drawn) return;
       cancelAnimationFrame(frame);
       redraw();
     });
     resize.observe(root);
-    const change = new MutationObserver(() => {
-      if (drawn && !frame) frame = requestAnimationFrame(() => redraw());
+    const change = new MutationObserver((records) => {
+      if (!records.every(ours) && !frame) frame = requestAnimationFrame(redraw);
     });
     change.observe(root, { subtree: true, childList: true, characterData: true });
-    // When loading ends: no redraw for the new content (the observers stop, their pending records with them), and the
-    // drawing goes before the next paint.
+    // When loading ends: no redraw for the new content (the observers stop, their pending records with them); the
+    // drawing isn't rendered past this state, and the next loading starts from nothing.
     return () => {
       live = false;
       cancelAnimationFrame(frame);
       resize.disconnect();
       change.disconnect();
-      clear(root);
+      setDrawn(null);
     };
   }, [state]);
 
@@ -332,6 +342,12 @@ export function Skeleton({ loading = false, render, className, ref, ...props }: 
       inert: state === 'loading',
       className: cn(skeletonClassName, className),
       ...props,
+      children: (
+        <>
+          {children}
+          {state === 'loading' && drawn && <Drawing {...drawn} stripes={stripes} />}
+        </>
+      ),
     },
   });
 }

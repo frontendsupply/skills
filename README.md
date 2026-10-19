@@ -75,7 +75,7 @@ Every class list in a component is split into a `// behavior` group (layout, ove
 
 [`skills/skeleton`](skills/skeleton): loading skeletons drawn from your component's own markup, only where it waits on data.
 
-While loading, the real component renders with placeholder data, and every element marked `data-skeleton` is drawn instead of shown: text as borderless bars, one per line; pictures and video as striped plates with a 1px border; data icons as circles; charts as drawings of themselves. Labels, buttons and static icons show as they are. Outlines trace in, one shimmer crosses everything, and the data fades in when it lands.
+While loading, the real component renders with placeholder data, and every element marked `data-skeleton` is drawn instead of shown: text as borderless bars, one per line; pictures and video as striped plates with a 1px border; data icons as circles; charts as drawings of themselves. Labels, buttons and static icons show as they are. Outlines trace in, and the data fades in when it lands.
 
 | Command | What it does |
 | --- | --- |

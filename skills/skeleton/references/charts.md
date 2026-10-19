@@ -1,6 +1,6 @@
 # Charts
 
-A chart that loads becomes a drawing of itself (rule 4): an `<svg data-skeleton="drawing">` at the chart's exact size, made of the chart's own structure (its axes and gridlines, as many bars or points or slices as it will have, a bar where each label goes) and nothing else. Inside a `Skeleton` the component draws it with the two colors: its lines trace in, the shimmer crosses it, and the chart takes its place when the data lands.
+A chart that loads becomes a drawing of itself (rule 4): an `<svg data-skeleton="drawing">` at the chart's exact size, made of the chart's own structure (its axes and gridlines, as many bars or points or slices as it will have, a bar where each label goes) and nothing else. Inside a `Skeleton` the component draws it in `--skeleton`: its lines trace in, and the chart takes its place when the data lands.
 
 The drawing is decided before any SVG is written, the way a draughtsman works: read the chart, write its spec, then draw it from the spec with the package's parts. Most of the quality is in the spec.
 

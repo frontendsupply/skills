@@ -14,7 +14,7 @@ import { BarChartSkeleton } from '@frontendsupply/chart-skeletons';
 </Skeleton>
 ```
 
-Each chart takes `width` and `height` (the chart's size in pixels) and its counts, and renders an `<svg data-skeleton="drawing">` of the chart's structure: axes, gridlines, its marks, a bar for each label. Inside the skill's `Skeleton` its lines trace in and shimmer; on its own it's drawn in `--skeleton`.
+Each chart takes `width` and `height` (the chart's size in pixels) and its counts, and renders an `<svg data-skeleton="drawing">` of the chart's structure: axes, gridlines, its marks, a bar for each label. Inside the skill's `Skeleton` its lines trace in; on its own it's drawn in `--skeleton`.
 
 Charts: `LineChartSkeleton`, `AreaChartSkeleton`, `BarChartSkeleton`, `StackedBarChartSkeleton`, `HorizontalBarChartSkeleton`, `PieChartSkeleton`, `DonutChartSkeleton`, `ScatterChartSkeleton`, `RadarChartSkeleton`, `HeatmapSkeleton`, `CandlestickChartSkeleton`, `GaugeSkeleton`, `FunnelChartSkeleton`, `SparklineSkeleton`. The kit they're drawn with (`frame`, `Drawing`, `Line`, `Guide`, `Label`, `Hatch`, `Grid`, `AxisLabels`, `Legend` and the path helpers) is exported for every other chart.
 

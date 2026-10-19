@@ -2,7 +2,7 @@
 // Checks, without a browser, a project's copy of the skeleton: every class that turns on with one of its states
 // (`data-loading:`, `data-drawn:`, `data-revealing:`) changes paint only, never a box, so the skeletons sit over the
 // placeholder's own layout; the copy kept the shipped behavior classes, its data-slot, Base UI and `cn`; and the
-// project's CSS sets its two colors (--skeleton and --skeleton-shine). How it looks is checked in the browser.
+// project's CSS sets its color (--skeleton). How it looks is checked in the browser.
 //
 //   node <this skill's folder>/scripts/check.mjs <skeleton file or folder> [--json]
 //
@@ -113,7 +113,6 @@ function setup(root) {
     .join('\n');
   const needs = {
     '--skeleton': /--skeleton\s*:/,
-    '--skeleton-shine': /--skeleton-shine\s*:/,
   };
   return { missing: Object.entries(needs).filter(([, re]) => !re.test(css)).map(([name]) => name) };
 }
@@ -157,7 +156,7 @@ else {
     console.log(`${failedOf(r) ? '✗' : '✓'} skeleton  ${where}`);
     console.log(`    paint only  ${r.shifts.length ? `${r.shifts.length} class(es) in a state can move a box` : 'every class in a state changes paint, never a box'}`);
     console.log(`    behavior    ${shipped.behavior.length - r.missing.length}/${shipped.behavior.length} classes kept`);
-    console.log(`    colors      ${r.setup.missing.length ? `not set in the project's CSS: ${r.setup.missing.join(', ')}` : "--skeleton and --skeleton-shine set in the project's CSS"}`);
+    console.log(`    colors      ${r.setup.missing.length ? `not set in the project's CSS: ${r.setup.missing.join(', ')}` : "--skeleton set in the project's CSS"}`);
     if (r.shifts.length) {
       console.log(`    can shift: ${r.shifts.join('  ')}`);
       console.log('    In a state, only paint may change: color, border color, background, mask, shadow, decoration, object');

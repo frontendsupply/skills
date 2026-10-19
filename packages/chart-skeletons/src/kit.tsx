@@ -10,8 +10,8 @@ import * as React from 'react';
 /*   Guide    data-guide    a 1px dashed line: gridlines, a gauge's track.    */
 /*   Label    data-fill     a filled bar standing for a short text.           */
 /*   Hatch    data-stripes  a striped area: under a line, inside a slice.     */
-/* Inside a Skeleton, the Skeleton draws these parts itself (with its colors, */
-/* trace and shimmer); outside one, the drawing shows them in --skeleton.     */
+/* Inside a Skeleton, the Skeleton draws these parts itself (in its color,   */
+/* its lines traced in); outside one, the drawing shows them in --skeleton.   */
 /* -------------------------------------------------------------------------- */
 
 export type Box = { x: number; y: number; w: number; h: number };
