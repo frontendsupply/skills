@@ -75,13 +75,13 @@ Every class list in a component is split into a `// behavior` group (layout, ove
 
 [`skills/skeleton`](skills/skeleton): loading skeletons drawn from your component's own markup, only where it waits on data.
 
-While loading, the real component renders with placeholder data, and every element marked `data-skeleton` is drawn instead of shown: text as borderless bars, one per line; pictures and video as striped plates with a 1px border; data icons as circles; charts as drawings of themselves. Labels, buttons and static icons show as they are. Outlines trace in, and the data fades in when it lands.
+While loading, the real component renders with placeholder data, and every element marked `data-skeleton` is drawn instead of shown: text as borderless bars, one per line; pictures and video as striped plates with a 1px border; data icons as circles; charts as drawings of themselves. Labels, buttons and static icons show as they are. They're painted by CSS on the placeholder's own layout, so they're in the server's HTML from the first frame, with no measuring and no script; they pulse, and the data fades in when it lands.
 
 | Command | What it does |
 | --- | --- |
 | `/skeleton` | What loads in your project and how each screen shows it now. Changes nothing. |
 | `/skeleton add <component…>` | Marks a component's data, writes its placeholder data, wraps it. |
-| `/skeleton chart <name or screenshot>` | Draws a chart's skeleton at its exact size, from its name, its code or a screenshot. |
+| `/skeleton chart <name or screenshot>` | Draws any chart's skeleton in one go, from its name, its code or a screenshot: a preset when one fits, otherwise drawn with the kit. |
 | `/skeleton refactor` | Replaces spinners and hand-drawn skeletons with skeletons drawn from the component. |
 | `/skeleton check` | Proves your copy draws with paint only and kept its behavior. |
 
@@ -89,7 +89,7 @@ While loading, the real component renders with placeholder data, and every eleme
 
 | Package | What |
 | --- | --- |
-| [`@frontendsupply/chart-skeletons`](packages/chart-skeletons) | Loading-state drawings of 14 common charts (line, area, bar, stacked and horizontal bars, pie, donut, scatter, radar, heatmap, candlestick, gauge, funnel, sparkline) at a chart's exact size, and the kit they're drawn with, for any other chart. The skeleton skill uses it. |
+| [`@frontendsupply/chart-skeletons`](packages/chart-skeletons) | Presets: loading-state drawings of 14 common charts (line, area, bar, stacked and horizontal bars, pie, donut, scatter, radar, heatmap, candlestick, gauge, funnel, sparkline) that fill the chart's box with no measuring, and the kit they're drawn with, for any other chart. The skeleton skill uses it. |
 
 ```sh
 pnpm add @frontendsupply/chart-skeletons
@@ -98,7 +98,7 @@ pnpm add @frontendsupply/chart-skeletons
 ```tsx
 import { BarChartSkeleton } from '@frontendsupply/chart-skeletons';
 
-<Skeleton loading={isPending}>
+<Skeleton loading={isPending} className="h-45 w-full">
   {isPending ? <BarChartSkeleton width={320} height={180} bars={7} /> : <OrdersChart data={data} />}
 </Skeleton>
 ```

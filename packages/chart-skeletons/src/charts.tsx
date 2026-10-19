@@ -15,6 +15,7 @@ import {
   frame,
   half,
   hLine,
+  monotone,
   noise,
   onCircle,
   outline,
@@ -26,10 +27,11 @@ import {
   whole,
   type Box,
   type LegendSide,
+  type Pad,
   type Size,
 } from './kit.js';
 
-// The chart skeletons. Each is drawn at the chart's exact size from the kit's parts, in the chart's own structure: its
+// The chart skeletons. Each is drawn at the chart's design size from the kit's parts, fills its box, in the chart's own structure: its
 // axes and gridlines, its marks (as many as the chart will have), its labels and legend. The data is a stand-in: a
 // plausible shape, the same on every render.
 
@@ -39,9 +41,15 @@ type Axes = {
   axes?: boolean;
   /** Where the legend goes (none). */
   legend?: LegendSide;
-  /** The chart's own margins, so the plot lands where the chart's does: pad (8), yAxis (32), xAxis (20). */
-  margins?: { pad?: number; yAxis?: number; xAxis?: number };
+  /** The chart's own margins, so the plot lands where the chart's does: pad (8, or each side), yAxis (32), xAxis (20). */
+  margins?: { pad?: Pad; yAxis?: number; xAxis?: number };
 };
+
+type Curved = {
+  /** How the line runs through its points: straight (linear), or smooth as Recharts' type="monotone" (linear). */
+  curve?: 'linear' | 'monotone';
+};
+const through = (curve: Curved['curve'], points: [number, number][]) => (curve === 'monotone' ? monotone(points) : polyline(points));
 
 // A series' point i of count, at value v (0 to 1) in the plot; on the half pixel up and down, so a flat run is crisp.
 const xy = (plot: Box, i: number, count: number, v: number): [number, number] => [
@@ -51,37 +59,48 @@ const xy = (plot: Box, i: number, count: number, v: number): [number, number] =>
 
 /* Line, area, sparkline ---------------------------------------------------- */
 
-export type LineChartProps = Size & Axes & Svg & { /** Lines (1). */ series?: number; /** Points per line (12). */ points?: number };
+export type LineChartProps = Size &
+  Axes &
+  Curved &
+  Svg & { /** Lines (1). */ series?: number; /** Points per line (12). */ points?: number; /** X labels, under points (6). */ labels?: number };
 
-export function LineChartSkeleton({ width, height, series = 1, points = 12, axes = true, legend = false, margins, ...props }: LineChartProps) {
+export function LineChartSkeleton({ width, height, series = 1, points = 12, labels = 6, curve, axes = true, legend = false, margins, ...props }: LineChartProps) {
   const f = frame({ width, height }, { axes, legend, ...margins });
   return (
     <Drawing width={width} height={height} {...props}>
       {axes && <Grid plot={f.plot} />}
-      {axes && <AxisLabels frame={f} />}
+      {axes && <AxisLabels frame={f} columns={labels} at="point" />}
       {Array.from({ length: series }, (_, s) => (
-        <Line key={s} d={polyline(wave(points, s).map((v, i) => xy(f.plot, i, points, v * (1 - s * 0.18))))} />
+        <Line key={s} d={through(curve, wave(points, s).map((v, i) => xy(f.plot, i, points, v * (1 - s * 0.18))))} />
       ))}
       {f.legend && legend && <Legend box={f.legend} count={series} side={legend} />}
     </Drawing>
   );
 }
 
-export type AreaChartProps = LineChartProps;
+export type AreaChartProps = LineChartProps & {
+  /** Series stacked on each other (Recharts' stackId) rather than overlapping (false). */
+  stacked?: boolean;
+};
 
-export function AreaChartSkeleton({ width, height, series = 1, points = 12, axes = true, legend = false, margins, ...props }: AreaChartProps) {
+export function AreaChartSkeleton({ width, height, series = 1, points = 12, labels = 6, curve, stacked = false, axes = true, legend = false, margins, ...props }: AreaChartProps) {
   const f = frame({ width, height }, { axes, legend, ...margins });
   const base = f.plot.y + f.plot.h - 1;
+  // Each series' values: on its own, or stacked, each layer a share of the height, the top of the stack under 0.92.
+  const layers = Array.from({ length: series }, (_, s) => wave(points, s).map((v) => (stacked ? v / series : v * (1 - s * 0.22))));
+  const tops = layers.map((layer, s) => layer.map((v, i) => (stacked ? layers.slice(0, s + 1).reduce((sum, l) => sum + l[i], 0) : v)));
   return (
     <Drawing width={width} height={height} {...props}>
       {axes && <Grid plot={f.plot} />}
-      {axes && <AxisLabels frame={f} />}
-      {Array.from({ length: series }, (_, s) => {
-        const line = wave(points, s).map((v, i) => xy(f.plot, i, points, v * (1 - s * 0.22)));
+      {axes && <AxisLabels frame={f} columns={labels} at="point" />}
+      {tops.map((top, s) => {
+        const line = top.map((v, i) => xy(f.plot, i, points, v));
+        const d = through(curve, line);
         return (
           <React.Fragment key={s}>
-            {s === 0 && <Hatch d={`${polyline(line)}L${line[line.length - 1][0]} ${base}L${line[0][0]} ${base}Z`} />}
-            <Line d={polyline(line)} />
+            {/* Stripes under the first series: the bottom of the stack, or the one in front. */}
+            {s === 0 && <Hatch d={`${d}L${line[line.length - 1][0]} ${base}L${line[0][0]} ${base}Z`} />}
+            <Line d={d} />
           </React.Fragment>
         );
       })}
@@ -90,15 +109,15 @@ export function AreaChartSkeleton({ width, height, series = 1, points = 12, axes
   );
 }
 
-export type SparklineProps = Size & Svg & { /** Points (16). */ points?: number; /** A dot on the last point (true). */ dot?: boolean };
+export type SparklineProps = Size & Curved & Svg & { /** Points (16). */ points?: number; /** A dot on the last point (true). */ dot?: boolean };
 
-export function SparklineSkeleton({ width, height, points = 16, dot = true, ...props }: SparklineProps) {
+export function SparklineSkeleton({ width, height, points = 16, dot = true, curve, ...props }: SparklineProps) {
   const plot = { x: 2, y: 3, w: width - (dot ? 7 : 4), h: height - 6 };
   const line = wave(points, 2).map((v, i) => xy(plot, i, points, v));
   const [lx, ly] = line[line.length - 1];
   return (
     <Drawing width={width} height={height} {...props}>
-      <Line d={polyline(line)} />
+      <Line d={through(curve, line)} />
       {dot && <Line d={circle(lx, ly, 2.5)} />}
     </Drawing>
   );
@@ -224,7 +243,7 @@ export function PieChartSkeleton({ width, height, slices = 4, legend = 'right', 
   const { cx, cy, r, box } = shareLayout({ width, height }, legend);
   let at = 0;
   return (
-    <Drawing width={width} height={height} {...props}>
+    <Drawing width={width} height={height} fit="contain" {...props}>
       {shares(slices).map((share, i) => {
         const d = segment(cx, cy, r - 0.5, 0, at, at + share);
         at += share;
@@ -248,7 +267,7 @@ export function DonutChartSkeleton({ width, height, slices = 4, legend = 'right'
   const gap = 0.006;
   let at = 0;
   return (
-    <Drawing width={width} height={height} {...props}>
+    <Drawing width={width} height={height} fit="contain" {...props}>
       {shares(slices).map((share, i) => {
         const d = segment(cx, cy, r - 0.5, inner, at + gap, at + share - gap);
         at += share;
@@ -328,7 +347,7 @@ export function RadarChartSkeleton({ width, height, spokes = 6, rings = 3, ...pr
   const ring = (k: number) => polyline(Array.from({ length: spokes }, (_, i) => corner(k, i))) + 'Z';
   const shape = polyline(wave(spokes, 5).map((v, i) => corner(0.35 + 0.6 * v, i))) + 'Z';
   return (
-    <Drawing width={width} height={height} {...props}>
+    <Drawing width={width} height={height} fit="contain" {...props}>
       {Array.from({ length: rings }, (_, k) => (
         <Guide key={k} d={ring((k + 1) / rings)} />
       ))}
@@ -422,7 +441,7 @@ export function GaugeSkeleton({ width, height, value = 0.62, ...props }: GaugePr
   const band = Math.max(Math.round(r * 0.22), 6);
   const start = -0.25;
   return (
-    <Drawing width={width} height={height} {...props}>
+    <Drawing width={width} height={height} fit="contain" {...props}>
       <Guide d={arc(cx, cy, r - 0.5, start, 0.25)} />
       <Guide d={arc(cx, cy, r - band + 0.5, start, 0.25)} />
       <Hatch d={segment(cx, cy, r - 0.5, r - band + 0.5, start, start + value * 0.5)} />

@@ -1,13 +1,13 @@
 #!/usr/bin/env node
-// Checks, without a browser, a project's copy of the skeleton: every class that turns on with one of its states
-// (`data-loading:`, `data-drawn:`, `data-revealing:`) changes paint only, never a box, so the skeletons sit over the
-// placeholder's own layout; the copy kept the shipped behavior classes, its data-slot, Base UI and `cn`; and the
-// project's CSS sets its color (--skeleton). How it looks is checked in the browser.
+// Checks, without a browser, a project's copy of the skeleton: its stylesheet kept every shipped rule, and every rule
+// (and every class the project added to the component with one of its states, `data-loading:` or `data-revealing:`)
+// changes paint only, never a box, so the skeletons sit on the placeholder's own layout; the component kept its
+// data-slot and Base UI; and the project's CSS sets its color (--skeleton). How it looks is checked in the browser.
 //
 //   node <this skill's folder>/scripts/check.mjs <skeleton file or folder> [--json]
 //
-// Exits 0 when everything passes; 1 when a loading class can move a box, a behavior class, the slot or a package is
-// missing, or the setup isn't in the project's CSS; 2 on a usage error. Needs Node 18+, nothing else.
+// Exits 0 when everything passes; 1 when a rule can move a box, a shipped rule, the slot or a package is missing, or the
+// setup isn't in the project's CSS; 2 on a usage error. Needs Node 18+, nothing else.
 
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
@@ -48,8 +48,11 @@ function walk(dir, test, depth = 0) {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// Paint only. A class's utility (what's left after its variants) may change how things are drawn, never how big they
-// are or where they sit. Anything not on this list fails: a skeleton that pads, sizes or hides a box shifts.
+// Paint only. A declaration (or a class's utility) may change how things are drawn, never how big they are or where
+// they sit. Anything not on these lists fails: a skeleton that pads, sizes or hides a box shifts.
+
+const PAINT_PROPERTY =
+  /^(?:color|background(?:-[\w-]+)?|border(?:-(?:top|right|bottom|left|block|inline)(?:-(?:start|end))?)?-color|border-(?:\w+-)*radius|text-decoration(?:-[\w-]+)?|text-underline-offset|text-shadow|outline(?:-[\w-]+)?|box-shadow|opacity|visibility|object-(?:position|fit)|fill|stroke|filter|clip-path|mask(?:-[\w-]+)?|content|animation(?:-[\w-]+)?|transition(?:-[\w-]+)?|--skeleton[\w-]*)$/;
 
 // Tailwind's font sizes, alignment and wrapping share `text-` with colors; they move text, so they fail.
 const TEXT_NOT_COLOR = /^text-(?:xs|sm|base|lg|xl|\dxl|left|center|right|justify|start|end|wrap|nowrap|balance|pretty|ellipsis|clip|\[length:|\(length:|\[\d|\[calc)/;
@@ -61,20 +64,17 @@ const PAINT = [
   /^bg-/,
   /^border(?:-[xytrblse])?-(?:transparent|current|inherit)$/, // a border's color, never its width
   /^-?outline/,
+  /^rounded(?:-|$)/, // corners: paint (they clip, never move)
   /^(?:inset-)?(?:ring|shadow)(?:-|$)/,
   /^object-/,
   /^(?:visible|invisible)$/,
   /^opacity-/,
-  /^animate-(?:skeleton|none|pulse)$/,
+  /^animate-/,
   /^(?:fill|stroke|caret|accent)-/,
-  /^(?:mix-blend|bg-blend)-/,
   /^mask-/,
   /^(?:blur|brightness|contrast|grayscale|sepia|saturate|hue-rotate|invert|drop-shadow|filter|backdrop-)/,
-  /^(?:pointer-events|cursor|select)-/,
-  /^(?:transition|delay|duration|ease)(?:-|$)/, // when, not what: the properties they animate are checked on their own
+  /^(?:transition|delay|duration|ease)(?:-|$)/,
 ];
-const PAINT_PROPERTY =
-  /^(?:color|background(?:-[\w-]+)?|text-decoration(?:-[\w-]+)?|text-underline-offset|outline(?:-[\w-]+)?|box-shadow|opacity|visibility|object-(?:position|fit)|fill|stroke|filter|clip-path|mask(?:-[\w-]+)?|transition(?:-[\w-]+)?|--skeleton[\w-]*)$/;
 
 // A class's variants and utility, split on the colons outside brackets and parens.
 function parts(token) {
@@ -95,26 +95,30 @@ function paintOnly(token) {
   if (TEXT_NOT_COLOR.test(utility)) return false;
   return PAINT.some((re) => re.test(utility));
 }
-// A class that turns on with a state: one of its variants is one of the skeleton's states.
 const whileLoading = (token) =>
   parts(token)
     .slice(0, -1)
-    .some((v) => /^(?:not-|in-|group-|peer-)?data-(?:loading|drawn|revealing)(?:\/\w+)?$|^data-\[(?:loading|drawn|revealing)\]$|^aria-busy$/.test(v));
+    .some((v) => /^(?:not-|in-|group-|peer-)?data-(?:loading|revealing)(?:\/\w+)?$|^data-\[(?:loading|revealing)\]$|^aria-busy$/.test(v));
 
 // ---------------------------------------------------------------------------------------------------------------
 
 const code = (text) => text.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:'"`])\/\/.*$/gm, '$1');
 const tokensOf = (text) => [...code(text).matchAll(/'([^'\n]*)'|"([^"\n]*)"|`([^`]*)`/g)].flatMap((m) => (m[1] ?? m[2] ?? m[3]).split(/\s+/)).filter(Boolean);
 const FORBIDDEN = /^(?:@radix-ui\/|radix-ui$|@headlessui\/|react-aria|@react-aria\/|@ark-ui\/|@mui\/(?:base|material)|@reach\/|@ariakit\/|ariakit)/;
+const normal = (selector) => selector.trim().replace(/"/g, "'").replace(/\s+/g, ' ');
 
-function setup(root) {
-  const css = walk(root, (n) => /\.(css|scss|pcss)$/.test(n))
-    .map((f) => readFileSync(f, 'utf8'))
-    .join('\n');
-  const needs = {
-    '--skeleton': /--skeleton\s*:/,
+// The project's skeleton rules: every rule in its CSS whose selector names the skeleton's slot, with its declarations.
+function stylesheet(root) {
+  const files = walk(root, (n) => /\.(css|scss|pcss)$/.test(n)).map((f) => ({ file: f, text: readFileSync(f, 'utf8') }));
+  const rules = files.flatMap(({ file, text }) =>
+    [...text.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([^{}@;]+)\{([^{}]*)\}/g)]
+      .filter((m) => m[1].includes('data-slot'))
+      .map((m) => ({ file, selector: normal(m[1]), properties: [...m[2].matchAll(/([\w-]+)\s*:/g)].map((d) => d[1]) })),
+  );
+  return {
+    rules,
+    color: files.some(({ text }) => /--skeleton\s*:/.test(text)),
   };
-  return { missing: Object.entries(needs).filter(([, re]) => !re.test(css)).map(([name]) => name) };
 }
 
 const results = [];
@@ -128,22 +132,30 @@ for (const path of args) {
   if (!found.length) results.push({ file: path, found: false });
   for (const file of found) {
     const raw = readFileSync(file, 'utf8');
-    const tokens = new Set(tokensOf(raw));
     const imported = [...raw.matchAll(/(?:^|\n)\s*import\s[^;]*?from\s*['"]([^'"]+)['"]/g)].map((m) => m[1]);
+    const css = stylesheet(projectRoot(file));
+    // A shipped rule is kept when the project has its selector setting at least its properties (in one rule or several).
+    const sets = (selector) => new Set(css.rules.filter((r) => r.selector === selector).flatMap((r) => r.properties));
     results.push({
       file,
       found: true,
-      shifts: [...tokens].filter((t) => whileLoading(t) && !paintOnly(t)),
-      missing: shipped.behavior.filter((t) => !tokens.has(t)),
+      classShifts: [...new Set(tokensOf(raw))].filter((t) => whileLoading(t) && !paintOnly(t)),
+      ruleShifts: css.rules.flatMap((r) => r.properties.filter((p) => !PAINT_PROPERTY.test(p)).map((p) => `${p} in ${r.selector}`)),
+      missingRules: shipped.rules
+        .filter((rule) => rule.properties.some((p) => !sets(normal(rule.selector)).has(p)))
+        .map((rule) => `${rule.selector} { ${rule.properties.filter((p) => !sets(normal(rule.selector)).has(p)).join(', ')} }`),
       slot: /data-slot["']?\s*[:=]\s*["']skeleton["']/.test(code(raw)),
+      states: /['"]data-loading['"]/.test(raw) && /['"]data-revealing['"]/.test(raw),
       missingImports: shipped.imports.filter((s) => !imported.includes(s)),
       forbiddenImports: [...new Set(imported.filter((s) => FORBIDDEN.test(s)))],
-      setup: setup(projectRoot(file)),
+      color: css.color,
+      rulesTotal: shipped.rules.length,
     });
   }
 }
 
-const failedOf = (r) => !r.found || r.shifts.length || r.missing.length || !r.slot || r.missingImports.length || r.forbiddenImports.length || r.setup.missing.length;
+const failedOf = (r) =>
+  !r.found || r.classShifts.length || r.ruleShifts.length || r.missingRules.length || !r.slot || !r.states || r.missingImports.length || r.forbiddenImports.length || !r.color;
 
 if (json) console.log(JSON.stringify(results, null, 2));
 else {
@@ -153,20 +165,25 @@ else {
       console.log(`✗ ${where}: no skeleton here (no data-slot="skeleton")`);
       continue;
     }
+    const shifts = [...r.ruleShifts, ...r.classShifts];
     console.log(`${failedOf(r) ? '✗' : '✓'} skeleton  ${where}`);
-    console.log(`    paint only  ${r.shifts.length ? `${r.shifts.length} class(es) in a state can move a box` : 'every class in a state changes paint, never a box'}`);
-    console.log(`    behavior    ${shipped.behavior.length - r.missing.length}/${shipped.behavior.length} classes kept`);
-    console.log(`    colors      ${r.setup.missing.length ? `not set in the project's CSS: ${r.setup.missing.join(', ')}` : "--skeleton set in the project's CSS"}`);
-    if (r.shifts.length) {
-      console.log(`    can shift: ${r.shifts.join('  ')}`);
-      console.log('    In a state, only paint may change: color, border color, background, mask, shadow, decoration, object');
-      console.log('    position, opacity, visibility. Move these out of the state, or into the content itself.');
+    console.log(`    paint only  ${shifts.length ? `${shifts.length} rule(s) or class(es) can move a box` : 'every rule and state class changes paint, never a box'}`);
+    console.log(`    rules       ${r.rulesTotal - r.missingRules.length}/${r.rulesTotal} of skeleton.css kept in the project's CSS`);
+    console.log(`    colors      ${r.color ? "--skeleton set in the project's CSS" : "--skeleton not set in the project's CSS"}`);
+    if (shifts.length) {
+      console.log(`    can shift: ${shifts.join('  |  ')}`);
+      console.log('    In a skeleton, only paint may change: color, background, border color, outline, corners, shadow,');
+      console.log('    decoration, opacity, visibility, animation. Never size, spacing, display, position or font size.');
     }
-    if (r.missing.length) console.log(`    missing behavior: ${r.missing.join('  ')} (put them back exactly as in components/skeleton.tsx)`);
+    if (r.missingRules.length) {
+      console.log('    missing rules (put them back exactly as in components/skeleton.css, imported by the main CSS file):');
+      for (const s of r.missingRules) console.log(`      ${s}`);
+    }
     if (!r.slot) console.log('    missing data-slot="skeleton"');
+    if (!r.states) console.log('    missing its states: data-loading and data-revealing (as in components/skeleton.tsx)');
     if (r.missingImports.length) console.log(`    not imported: ${r.missingImports.join(', ')} (import them exactly as components/skeleton.tsx does)`);
     if (r.forbiddenImports.length) console.log(`    built on another library: ${r.forbiddenImports.join(', ')}`);
-    if (r.setup.missing.length) console.log("    Set them in the project's main CSS file, pointed at its tokens (references/skeleton.md, Setup).");
+    if (!r.color) console.log("    Set --skeleton in the project's main CSS file, pointed at its tokens (references/skeleton.md, Setup).");
   }
   const failed = results.filter(failedOf).length;
   console.log(failed ? `check failed: ${failed} of ${results.length}` : `check passed: ${results.length} skeleton${results.length === 1 ? '' : 's'}`);

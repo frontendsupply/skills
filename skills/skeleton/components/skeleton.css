@@ -1,0 +1,104 @@
+/* -------------------------------------------------------------------------- */
+/* The skeleton's rules, for components/skeleton.tsx. Import it once, in the  */
+/* main CSS file after Tailwind (`@import "./skeleton.css";`), and set        */
+/* --skeleton there.                                                          */
+/*                                                                            */
+/* While a Skeleton is loading, every element marked `data-skeleton` inside   */
+/* it is painted as its skeleton: text as bars, one per line; pictures as     */
+/* striped plates with a 1px edge; icons as 1px circles; anything with        */
+/* nothing inside as a 1px outline; a chart's drawing as itself. They pulse,  */
+/* and the data fades in. Nothing is measured: the browser lays out the       */
+/* placeholder, these rules paint it, from the first frame, and only paint    */
+/* changes. Outside any layer, so it outranks every Tailwind utility on a     */
+/* marked element and a project's own unlayered CSS (by specificity); only an */
+/* inline style or an !important can show through.                           */
+/*                                                                            */
+/* Look values (the rest is behavior): a text bar is 0.6em thick; a plate's   */
+/* stripes are 1px every 6px; the pulse is 2s, to half opacity.              */
+/* -------------------------------------------------------------------------- */
+
+/* Text, in a mark and everything in it (never in an svg: an icon or a chart's drawing paints itself), turns
+   transparent, and a bar in --skeleton runs through each line, as long as the line: a line-through, which every line
+   of the text gets and which ends where the line does. Set on every element in the mark, not only the mark, so text
+   in an inline-block (which a decoration doesn't reach into) gets its bar too. */
+[data-slot='skeleton'][data-loading] :is([data-skeleton], [data-skeleton] *):not(svg, svg *),
+[data-slot='skeleton'][data-loading] :is([data-skeleton], [data-skeleton] *):not(svg, svg *)::placeholder {
+  color: transparent;
+  text-decoration: line-through 0.6em var(--skeleton);
+  text-decoration-skip-ink: none;
+  text-shadow: none;
+}
+
+/* Its own paint goes too, its ::before and ::after's with it, so a badge becomes its text's bar and a status dot drawn
+   by a pseudo-element goes; not a picture's, which is its plate. */
+[data-slot='skeleton'][data-loading]
+  :is([data-skeleton], [data-skeleton] *):not(svg, svg *, img, video, canvas, [data-skeleton='picture']),
+[data-slot='skeleton'][data-loading] :is([data-skeleton], [data-skeleton] *)::before,
+[data-slot='skeleton'][data-loading] :is([data-skeleton], [data-skeleton] *)::after {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+/* A picture (an img, video or canvas that's marked or inside a mark, or anything marked "picture") is a plate: a 1px
+   edge (an outline, inset, so nothing moves) over diagonal stripes, in the element's own corners. */
+[data-slot='skeleton'][data-loading]
+  :is(:is(img, video, canvas)[data-skeleton], [data-skeleton] :is(img, video, canvas), [data-skeleton='picture']) {
+  outline: 1px solid var(--skeleton);
+  outline-offset: -1px;
+  background: repeating-linear-gradient(-45deg, var(--skeleton) 0 1px, transparent 1px 6px);
+}
+/* An image shows its plate, never what the browser draws for one with no source yet, or a broken one. */
+[data-slot='skeleton'][data-loading] :is(img[data-skeleton], [data-skeleton] img) {
+  content: linear-gradient(transparent, transparent);
+}
+
+/* An icon (an svg that's marked or inside a mark, never a chart's drawing) is a 1px circle; its shapes hide. */
+[data-slot='skeleton'][data-loading]
+  :is(svg[data-skeleton], [data-skeleton] svg):not([data-skeleton='drawing'], [data-skeleton='drawing'] *) {
+  border-radius: 9999px;
+  outline: 1px solid var(--skeleton);
+  outline-offset: -1px;
+}
+[data-slot='skeleton'][data-loading]
+  :is(svg[data-skeleton], [data-skeleton] svg):not([data-skeleton='drawing'], [data-skeleton='drawing'] *)
+  * {
+  visibility: hidden;
+}
+
+/* A mark with nothing inside (a color swatch, a status dot, a field) is a 1px outline of its box, in its corners. */
+[data-slot='skeleton'][data-loading] [data-skeleton]:empty:not(img, video, canvas) {
+  outline: 1px solid var(--skeleton);
+  outline-offset: -1px;
+}
+
+/* Every skeleton pulses, a region's together: opacity, which the browser animates off the main thread. */
+[data-slot='skeleton'][data-loading] [data-skeleton] {
+  animation: skeleton-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* When the data arrives, the bars fade out as the text fades in, and the data's own paint fades in with it. */
+[data-slot='skeleton'][data-revealing] :is([data-skeleton], [data-skeleton] *):not(svg, svg *) {
+  text-decoration: line-through 0.6em transparent;
+  text-decoration-skip-ink: none;
+}
+[data-slot='skeleton'][data-revealing] :is([data-skeleton], [data-skeleton] *) {
+  transition-property: color, text-decoration-color, background-color, border-color, outline-color, box-shadow;
+  transition-duration: 200ms;
+}
+
+/* Reduced motion: no pulse, and the data at once. */
+@media (prefers-reduced-motion: reduce) {
+  [data-slot='skeleton'][data-loading] [data-skeleton] {
+    animation: none;
+  }
+  [data-slot='skeleton'][data-revealing] :is([data-skeleton], [data-skeleton] *) {
+    transition: none;
+  }
+}
+
+@keyframes skeleton-pulse {
+  50% {
+    opacity: 0.5;
+  }
+}

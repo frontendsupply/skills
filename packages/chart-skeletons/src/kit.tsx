@@ -3,15 +3,17 @@ import * as React from 'react';
 /* -------------------------------------------------------------------------- */
 /* The kit: what every chart skeleton is drawn with.                          */
 /*                                                                            */
-/* A drawing is an <svg data-skeleton="drawing"> at the chart's exact size    */
-/* (its viewBox is its width and height, one unit per pixel) made of four     */
-/* parts, every one a path:                                                   */
-/*   Line     data-line     a 1px line: axes, a series, an outline. Traces in.*/
+/* A drawing is an <svg data-skeleton="drawing"> drawn at the chart's design  */
+/* size (its viewBox: its width and height, one unit per pixel there) that    */
+/* fills its box, so it needs no measuring: give the box the chart's size and */
+/* the drawing scales to it, its lines kept 1px. It's made of four parts,     */
+/* every one a path:                                                          */
+/*   Line     data-line     a 1px line: axes, a series, an outline.          */
 /*   Guide    data-guide    a 1px dashed line: gridlines, a gauge's track.    */
 /*   Label    data-fill     a filled bar standing for a short text.           */
 /*   Hatch    data-stripes  a striped area: under a line, inside a slice.     */
-/* Inside a Skeleton, the Skeleton draws these parts itself (in its color,   */
-/* its lines traced in); outside one, the drawing shows them in --skeleton.   */
+/* All of it in --skeleton, so it renders on the server with the page; in a  */
+/* Skeleton it pulses with the other skeletons.                               */
 /* -------------------------------------------------------------------------- */
 
 export type Box = { x: number; y: number; w: number; h: number };
@@ -73,6 +75,82 @@ export const arc = (cx: number, cy: number, radius: number, a: number, b: number
   return `M${r1(x1)} ${r1(y1)}A${r1(radius)} ${r1(radius)} 0 ${b - a > 0.5 ? 1 : 0} 1 ${r1(x2)} ${r1(y2)}`;
 };
 
+/**
+ * A smooth line through the points that never overshoots them (monotone in x: Recharts' and d3's `monotone`), for a
+ * series drawn with `type="monotone"`.
+ */
+export function monotone(points: [number, number][]): string {
+  if (points.length < 3) return polyline(points);
+  const slope = points.slice(1).map(([x, y], i) => (y - points[i][1]) / (x - points[i][0] || 1));
+  // Fritsch–Carlson tangents: 0 at a turn, a weighted mean of the slopes on either side elsewhere.
+  const tangent = points.map((_, i) => {
+    if (i === 0) return slope[0];
+    if (i === points.length - 1) return slope[i - 1];
+    const [a, b] = [slope[i - 1], slope[i]];
+    if (a * b <= 0) return 0;
+    const [dx0, dx1] = [points[i][0] - points[i - 1][0], points[i + 1][0] - points[i][0]];
+    return (3 * (dx0 + dx1)) / ((2 * dx1 + dx0) / a + (dx1 + 2 * dx0) / b);
+  });
+  return points
+    .slice(1)
+    .map(([x, y], i) => {
+      const [x0, y0] = points[i];
+      const third = (x - x0) / 3;
+      return `C${r1(x0 + third)} ${r1(y0 + tangent[i] * third)} ${r1(x - third)} ${r1(y - tangent[i + 1] * third)} ${r1(x)} ${r1(y)}`;
+    })
+    .reduce((d, c) => d + c, `M${r1(points[0][0])} ${r1(points[0][1])}`);
+}
+
+/**
+ * A sankey link: a band from one node's edge (`x1`, from `y1` to `y1end`) to another's (`x2`, `y2` to `y2end`), its
+ * long sides curved. Its ends are on the half pixel, so they lie on the nodes' 1px outlines.
+ */
+export const band = (x1: number, y1: number, y1end: number, x2: number, y2: number, y2end: number) => {
+  const [a, b] = [half(x1), half(x2)];
+  const mid = r1((a + b) / 2);
+  return `M${a} ${r1(y1)}C${mid} ${r1(y1)} ${mid} ${r1(y2)} ${b} ${r1(y2)}V${r1(y2end)}C${mid} ${r1(y2end)} ${mid} ${r1(y1end)} ${a} ${r1(y1end)}Z`;
+};
+
+/**
+ * Tiles for a treemap: one box per value, in the order given, filling `box`, each as close to square as the values allow
+ * (squarified, as Recharts and d3 lay them out).
+ */
+export function squarify(values: number[], box: Box): Box[] {
+  const total = values.reduce((a, b) => a + b, 0) || 1;
+  const areas = values.map((v) => (v / total) * box.w * box.h);
+  const order = areas.map((_, i) => i).sort((a, b) => areas[b] - areas[a]);
+  const tiles: Box[] = [];
+  const sum = (row: number[]) => row.reduce((a, k) => a + areas[k], 0);
+  // How far the row's worst tile is from square, laid along a side this long.
+  const worst = (row: number[], side: number) => {
+    const s = sum(row);
+    return Math.max(...row.map((k) => Math.max((side * side * areas[k]) / (s * s), (s * s) / (side * side * areas[k]))));
+  };
+  const lay = (row: number[], r: Box): Box => {
+    const s = sum(row);
+    if (r.w >= r.h) {
+      const w = s / r.h;
+      row.reduce((y, k) => ((tiles[k] = { x: r.x, y, w, h: areas[k] / w }), y + areas[k] / w), r.y);
+      return { x: r.x + w, y: r.y, w: r.w - w, h: r.h };
+    }
+    const h = s / r.w;
+    row.reduce((x, k) => ((tiles[k] = { x, y: r.y, w: areas[k] / h, h }), x + areas[k] / h), r.x);
+    return { x: r.x, y: r.y + h, w: r.w, h: r.h - h };
+  };
+  let rest = { ...box };
+  let row: number[] = [];
+  for (const k of order) {
+    const side = Math.min(rest.w, rest.h);
+    if (row.length && worst([...row, k], side) > worst(row, side)) {
+      rest = lay(row, rest);
+      row = [];
+    }
+    row.push(k);
+  }
+  if (row.length) lay(row, rest);
+  return tiles;
+}
+
 /* Stand-in data: plausible, and the same on every render. ----------------- */
 
 /** `count` values between 0.1 and 0.92, wandering and rising a little, like most charts over time. */
@@ -104,31 +182,38 @@ export function shares(count: number): number[] {
 export type LegendSide = 'top' | 'right' | 'bottom' | false;
 export type Frame = { plot: Box; yLabels?: Box; xLabels?: Box; legend?: Box };
 
+/** Space around a chart: one number for every side, or each side its own (Recharts' `margin`). */
+export type Pad = number | { top?: number; right?: number; bottom?: number; left?: number };
+
 /**
- * Lays a chart out inside its size: y labels on the left (`yAxis`, 32px), x labels below (`xAxis`, 20px), a legend
- * above or below (24px) or on the right (96px), and `pad` around everything (8px).
+ * Lays a chart out inside its size: y labels on the left (`yAxis`, 32px: Recharts' YAxis width), x labels below
+ * (`xAxis`, 20px: its XAxis height), a legend above or below (24px, centered across the chart, as Recharts and
+ * Chart.js put it) or on the right (96px), and `pad` around everything (8px; Recharts' default margin is 5).
  */
 export function frame(
   { width, height }: Size,
-  { axes = true, legend = false as LegendSide, pad = 8, yAxis = 32, xAxis = 20 }: { axes?: boolean; legend?: LegendSide; pad?: number; yAxis?: number; xAxis?: number } = {},
+  { axes = true, legend = false as LegendSide, pad = 8, yAxis = 32, xAxis = 20 }: { axes?: boolean; legend?: LegendSide; pad?: Pad; yAxis?: number; xAxis?: number } = {},
 ): Frame {
-  const left = pad + (axes ? yAxis : 0);
-  const right = width - pad - (legend === 'right' ? 96 : 0);
-  const top = pad + (legend === 'top' ? 24 : 0);
-  const bottom = height - pad - (axes ? xAxis : 0) - (legend === 'bottom' ? 24 : 0);
+  const p = typeof pad === 'number' ? { top: pad, right: pad, bottom: pad, left: pad } : { top: 8, right: 8, bottom: 8, left: 8, ...pad };
+  const left = p.left + (axes ? yAxis : 0);
+  const right = width - p.right - (legend === 'right' ? 96 : 0);
+  const top = p.top + (legend === 'top' ? 24 : 0);
+  const bottom = height - p.bottom - (axes ? xAxis : 0) - (legend === 'bottom' ? 24 : 0);
   const plot = { x: left, y: top, w: Math.max(right - left, 1), h: Math.max(bottom - top, 1) };
+  // A legend above or below sits in the middle of its 24px band, centered across the whole chart.
+  const across = (y: number) => ({ x: p.left, y: y + (24 - LABEL - 2) / 2, w: width - p.left - p.right, h: LABEL + 2 });
   return {
     plot,
     // Labels only where there's room for them: a label and its 8px gap.
-    yLabels: axes && yAxis >= 16 ? { x: pad, y: top, w: yAxis - 8, h: plot.h } : undefined,
+    yLabels: axes && yAxis >= 16 ? { x: p.left, y: top, w: yAxis - 8, h: plot.h } : undefined,
     xLabels: axes && xAxis >= 8 + LABEL ? { x: left, y: bottom + 8, w: plot.w, h: LABEL } : undefined,
     legend:
       legend === 'right'
         ? { x: right + 16, y: top, w: 96 - 16, h: plot.h }
         : legend === 'bottom'
-          ? { x: left, y: height - pad - LABEL - 2, w: plot.w, h: LABEL + 2 }
+          ? across(height - p.bottom - 24)
           : legend === 'top'
-            ? { x: left, y: pad + 1, w: plot.w, h: LABEL + 2 }
+            ? across(p.top)
             : undefined,
   };
 }
@@ -137,21 +222,31 @@ export function frame(
 
 const Stripes = React.createContext('');
 
-/** The drawing: an <svg> at the chart's exact size, its parts in `--skeleton` when no Skeleton draws them. */
-export function Drawing({ width, height, children, ...props }: Size & Omit<React.ComponentProps<'svg'>, 'width' | 'height'>) {
-  const id = `stripes-${React.useId().replace(/[^\w-]/g, '')}`;
+/** How a drawing fills a box of other proportions: stretched to it (charts on axes), or whole and centered (round ones). */
+export type Fit = 'stretch' | 'contain';
+
+/**
+ * The drawing: an <svg> drawn at `width` × `height` that fills its box (as tall as the box, or, in a box with no height,
+ * as tall as its proportions make it), its parts in --skeleton.
+ */
+export function Drawing({ width, height, fit = 'stretch', children, ...props }: Size & { fit?: Fit } & Omit<React.ComponentProps<'svg'>, 'width' | 'height'>) {
+  // Its stripes' pattern id: from `id` when one is given (two drawings rendered by separate React roots, as with
+  // renderToStaticMarkup, would otherwise share one), else React's.
+  const auto = React.useId();
+  const id = `stripes-${(props.id ?? auto).replace(/[^\w-]/g, '')}`;
   return (
     <svg
       data-skeleton="drawing"
-      width={width}
-      height={height}
+      width="100%"
+      height="100%"
       viewBox={`0 0 ${width} ${height}`}
+      preserveAspectRatio={fit === 'contain' ? 'xMidYMid meet' : 'none'}
       fill="none"
       stroke="currentColor"
       strokeWidth={1}
       aria-hidden="true"
       {...props}
-      style={{ color: 'var(--skeleton, #e5e5e5)', display: 'block', ...props.style }}
+      style={{ color: 'var(--skeleton, #e5e5e5)', display: 'block', aspectRatio: `${width} / ${height}`, ...props.style }}
     >
       <defs>
         <pattern id={id} width={STRIPES} height={STRIPES} patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
@@ -164,10 +259,11 @@ export function Drawing({ width, height, children, ...props }: Size & Omit<React
 }
 
 type PathProps = { d: string };
+// Lines stay 1px however the drawing scales, and end where they're drawn to (butt caps).
 /** A 1px line: axes, a series, an outline. */
-export const Line = ({ d }: PathProps) => <path data-line d={d} strokeLinecap="square" />;
+export const Line = ({ d }: PathProps) => <path data-line d={d} vectorEffect="non-scaling-stroke" />;
 /** A 1px dashed line: gridlines, a track. */
-export const Guide = ({ d }: PathProps) => <path data-guide d={d} strokeDasharray={DASH} />;
+export const Guide = ({ d }: PathProps) => <path data-guide d={d} strokeDasharray={DASH} vectorEffect="non-scaling-stroke" />;
 /** A filled bar for a short text, `w` wide (and `LABEL` tall), its top left at x, y. */
 export const Label = ({ x, y, w, h = LABEL }: { x: number; y: number; w: number; h?: number }) => (
   <path data-fill d={area({ x, y, w, h })} fill="currentColor" stroke="none" />
@@ -191,21 +287,39 @@ export function Grid({ plot, rows = 4 }: { plot: Box; rows?: number }) {
   );
 }
 
-/** Y labels at each gridline, right-aligned to the plot; x labels spread under it. */
-export function AxisLabels({ frame: f, rows = 4, columns = 6 }: { frame: Frame; rows?: number; columns?: number }) {
+/**
+ * Y labels at each gridline, right-aligned to the plot; `columns` x labels under it, centered in equal bands (`at`
+ * "band": bars, categories) or on points from the plot's left edge to its right (`at` "point": a line or an area's x
+ * axis). `widths` sets the labels' widths, as measured: `y` (18, alternating with 14; the last, the 0, is 8) and `x` (20).
+ */
+export function AxisLabels({
+  frame: f,
+  rows = 4,
+  columns = 6,
+  at = 'band',
+  widths = {},
+}: {
+  frame: Frame;
+  rows?: number;
+  columns?: number;
+  at?: 'band' | 'point';
+  widths?: { x?: number; y?: number };
+}) {
   const { yLabels, xLabels, plot } = f;
+  const xw = widths.x ?? 20;
   return (
     <>
       {yLabels &&
         Array.from({ length: rows + 1 }, (_, i) => {
-          const w = i === rows ? 8 : 18 - (i % 2) * 4;
+          const w = i === rows ? 8 : (widths.y ?? 18) - (i % 2) * 4;
           return <Label key={`y${i}`} x={yLabels.x + yLabels.w - w} y={plot.y + (plot.h * i) / rows - LABEL / 2} w={w} />;
         })}
       {xLabels &&
         Array.from({ length: columns }, (_, i) => {
-          const w = 20;
-          const cx = plot.x + (plot.w * (i + 0.5)) / columns;
-          return <Label key={`x${i}`} x={cx - w / 2} y={xLabels.y} w={w} />;
+          const cx = at === 'point' ? plot.x + (columns > 1 ? (plot.w * i) / (columns - 1) : plot.w / 2) : plot.x + (plot.w * (i + 0.5)) / columns;
+          // The end labels stay over the plot's ends rather than past them, as charts keep them.
+          const x = Math.min(Math.max(cx - xw / 2, plot.x - xw / 2 + 4), plot.x + plot.w - xw / 2 - 4);
+          return <Label key={`x${i}`} x={x} y={xLabels.y} w={xw} />;
         })}
     </>
   );

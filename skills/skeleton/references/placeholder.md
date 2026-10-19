@@ -9,7 +9,7 @@ The real data will be different: more rows, a longer name, a missing photo. The 
 - **The same type** as the real data: the same fields, so the component renders without a special case. `placeholderOrder: Order`.
 - **Estimate low.** The real data may make the layout grow when it arrives (a longer title wrapping onto a second line, more rows): that's expected. It must not make it shrink, which reads as a glitch. So every value sits at the short end of usual: a short name (`'Name'`), a one-line title, a price like `'$00.00'`, a date like `'Jan 01'`; from the API's types and, when there's one, a sample response.
 - **A few rows for a list:** 3, or the fewest a list usually has if that's fewer. Never the real count: it isn't known yet.
-- **Pictures:** no source at all (`src={undefined}`, or a field left out of the placeholder): nothing loads. Never a real image and never a data URI. The element is sized by CSS (`size-16`, or `w-full aspect-square`; `shrink-0` in a flex row): with no source it has no size of its own.
+- **Pictures:** no source (`src={undefined}`, or the field left out of the placeholder): nothing loads, and the skeleton keeps the browser's broken-image icon from showing. Never a real image and never a data URI. The element is sized by CSS (`size-16`, or `w-full aspect-square`; `shrink-0` in a flex row): with no source it has no size of its own.
 - **Optional fields:** the common case. If most items have a photo, the placeholder has one.
 - **Invented, always.** Never a real user, order or record, and nothing personal: the placeholder ships in the bundle.
 

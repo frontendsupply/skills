@@ -4,9 +4,11 @@
 // A drawing is the markup of an <svg data-skeleton="drawing"> (from the browser, `el.outerHTML`; from React,
 // renderToStaticMarkup). Each check prints its count of failures and where they are; the drawing passes when every
 // count is 0:
-//   size        width and height are whole pixels and the viewBox is exactly 0 0 width height (one unit, one pixel)
+//   size        a viewBox of whole numbers from 0 0 (the design size, one unit a pixel there), and the svg fills its
+//               box (width and height 100%, with a preserveAspectRatio) or is exactly that size
 //   parts       every element is a path marked as one part: data-line, data-guide, data-fill or data-stripes
 //   colors      no fill, stroke, class or style on a part: the Skeleton (or --skeleton) colors it
+//   scaling     every line and guide keeps 1px however the drawing scales (vector-effect="non-scaling-stroke")
 //   bounds      every part inside the drawing, a line's whole stroke too
 //   grid        every straight 1px line on the half pixel, every label's straight edge on the whole pixel: crisp
 //               (stripes are exempt: their edges sit under the lines that bound them)
@@ -120,7 +122,7 @@ const near = (v, f) => Math.abs(frac(v) - f) < E || Math.abs(frac(v) - f) > 1 - 
 const short = (d) => (d.length > 48 ? `${d.slice(0, 48)}…` : d);
 
 export function checkDrawing(markup) {
-  const failures = { size: [], parts: [], colors: [], bounds: [], grid: [], labels: [], lines: [] };
+  const failures = { size: [], parts: [], colors: [], scaling: [], bounds: [], grid: [], labels: [], lines: [] };
   const counts = Object.fromEntries(PARTS.map((p) => [p, 0]));
   const tags = [...markup.matchAll(/<(\/?)([a-zA-Z][\w:-]*)((?:\s+[\w:-]+(?:\s*=\s*"[^"]*")?)*)\s*(\/?)>/g)];
   const root = tags[0];
@@ -129,11 +131,15 @@ export function checkDrawing(markup) {
     return { failures, counts, width: 0, height: 0 };
   }
   const r = attrs(root[3]);
-  const [width, height] = [Number(r.width), Number(r.height)];
-  if (!Number.isInteger(width) || !Number.isInteger(height) || width <= 0 || height <= 0)
-    failures.size.push(`width "${r.width}" and height "${r.height}" must be whole pixels: the chart's size`);
-  if ((r.viewBox ?? r.viewbox ?? '').trim().split(/[\s,]+/).map(Number).join(' ') !== `0 0 ${width} ${height}`)
-    failures.size.push(`viewBox "${r.viewBox ?? ''}" must be "0 0 ${width} ${height}", one unit per pixel`);
+  const box = (r.viewBox ?? r.viewbox ?? '').trim().split(/[\s,]+/).map(Number);
+  const [width, height] = [box[2], box[3]];
+  if (box.length !== 4 || box[0] !== 0 || box[1] !== 0 || !Number.isInteger(width) || !Number.isInteger(height) || width <= 0 || height <= 0)
+    failures.size.push(`viewBox "${r.viewBox ?? ''}" must be "0 0 width height" in whole numbers: the chart's design size`);
+  const fills = r.width === '100%' && r.height === '100%';
+  const exact = Number(r.width) === width && Number(r.height) === height;
+  if (!fills && !exact) failures.size.push(`width "${r.width}" and height "${r.height}": "100%" (the drawing fills its box) or the viewBox's own size`);
+  if (fills && !/^(none|xMidYMid meet)$/.test(r.preserveAspectRatio ?? r.preserveaspectratio ?? ''))
+    failures.size.push('a drawing that fills its box needs preserveAspectRatio: "none" (stretched) or "xMidYMid meet" (whole)');
   if (r['stroke-width'] && Number(r['stroke-width']) !== 1) failures.size.push(`stroke-width ${r['stroke-width']}: lines are 1px`);
 
   let defs = 0;
@@ -161,6 +167,8 @@ export function checkDrawing(markup) {
     for (const k of ['fill', 'stroke']) if (k in a && !PAINT.test(a[k])) failures.colors.push(`${at} (${kind}): ${k}="${a[k]}"`);
     for (const k of ['class', 'style', 'transform', 'opacity']) if (k in a) failures.colors.push(`${at} (${kind}): ${k}="${a[k]}": the Skeleton draws it`);
     if (a['stroke-width'] && Number(a['stroke-width']) !== 1) failures.colors.push(`${at} (${kind}): stroke-width ${a['stroke-width']}: lines are 1px`);
+    if ((kind === 'line' || kind === 'guide') && a['vector-effect'] !== 'non-scaling-stroke')
+      failures.scaling.push(`${at} (${kind}): no vector-effect="non-scaling-stroke", so it thickens or thins when the drawing scales`);
     const { points, straights } = trace(a.d ?? '');
     if (!points.length) {
       failures.parts.push(`${at} (${kind}): no path data`);
@@ -191,6 +199,7 @@ const NAMES = {
   size: 'size and viewBox',
   parts: 'not in the vocabulary',
   colors: 'colored or styled',
+  scaling: 'lines that scale',
   bounds: 'out of bounds',
   grid: 'off the pixel grid',
   labels: 'labels too tall or short',

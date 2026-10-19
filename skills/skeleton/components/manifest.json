@@ -1,37 +1,100 @@
 {
-  "generated": "by scripts/build-boilerplate.mjs from src/components/ui/skeleton.tsx; do not edit",
+  "generated": "by scripts/build-boilerplate.mjs from src/components/ui/skeleton.tsx and skeleton.css; do not edit",
   "skeleton": {
-    "behavior": [
-      "absolute",
-      "data-loading:[&_[data-skeleton]]:opacity-0",
-      "data-revealing:[&_[data-skeleton]]:duration-200",
-      "data-revealing:[&_[data-skeleton]]:transition-opacity",
-      "duration-300",
-      "duration-600",
-      "ease-[cubic-bezier(.65,0,.35,1)]",
-      "ease-out",
-      "left-0",
-      "motion-reduce:transition-none",
-      "overflow-visible",
-      "pointer-events-none",
-      "relative",
-      "starting:[stroke-dashoffset:1]",
-      "starting:opacity-0",
-      "top-0",
-      "transition-[stroke-dashoffset]",
-      "transition-opacity"
-    ],
-    "look": [],
     "slots": [
-      "skeleton",
-      "skeleton-drawing"
+      "skeleton"
     ],
     "exports": [
       "Skeleton"
     ],
     "imports": [
-      "@base-ui/react/use-render",
-      "cn"
+      "@base-ui/react/use-render"
+    ],
+    "rules": [
+      {
+        "selector": "[data-slot='skeleton'][data-loading] :is([data-skeleton], [data-skeleton] *):not(svg, svg *), [data-slot='skeleton'][data-loading] :is([data-skeleton], [data-skeleton] *):not(svg, svg *)::placeholder",
+        "properties": [
+          "color",
+          "text-decoration",
+          "text-decoration-skip-ink",
+          "text-shadow"
+        ]
+      },
+      {
+        "selector": "[data-slot='skeleton'][data-loading] :is([data-skeleton], [data-skeleton] *):not(svg, svg *, img, video, canvas, [data-skeleton='picture']), [data-slot='skeleton'][data-loading] :is([data-skeleton], [data-skeleton] *)::before, [data-slot='skeleton'][data-loading] :is([data-skeleton], [data-skeleton] *)::after",
+        "properties": [
+          "background",
+          "border-color",
+          "box-shadow"
+        ]
+      },
+      {
+        "selector": "[data-slot='skeleton'][data-loading] :is(:is(img, video, canvas)[data-skeleton], [data-skeleton] :is(img, video, canvas), [data-skeleton='picture'])",
+        "properties": [
+          "outline",
+          "outline-offset",
+          "background"
+        ]
+      },
+      {
+        "selector": "[data-slot='skeleton'][data-loading] :is(img[data-skeleton], [data-skeleton] img)",
+        "properties": [
+          "content"
+        ]
+      },
+      {
+        "selector": "[data-slot='skeleton'][data-loading] :is(svg[data-skeleton], [data-skeleton] svg):not([data-skeleton='drawing'], [data-skeleton='drawing'] *)",
+        "properties": [
+          "border-radius",
+          "outline",
+          "outline-offset"
+        ]
+      },
+      {
+        "selector": "[data-slot='skeleton'][data-loading] :is(svg[data-skeleton], [data-skeleton] svg):not([data-skeleton='drawing'], [data-skeleton='drawing'] *) *",
+        "properties": [
+          "visibility"
+        ]
+      },
+      {
+        "selector": "[data-slot='skeleton'][data-loading] [data-skeleton]:empty:not(img, video, canvas)",
+        "properties": [
+          "outline",
+          "outline-offset"
+        ]
+      },
+      {
+        "selector": "[data-slot='skeleton'][data-loading] [data-skeleton]",
+        "properties": [
+          "animation"
+        ]
+      },
+      {
+        "selector": "[data-slot='skeleton'][data-revealing] :is([data-skeleton], [data-skeleton] *):not(svg, svg *)",
+        "properties": [
+          "text-decoration",
+          "text-decoration-skip-ink"
+        ]
+      },
+      {
+        "selector": "[data-slot='skeleton'][data-revealing] :is([data-skeleton], [data-skeleton] *)",
+        "properties": [
+          "transition-property",
+          "transition-duration"
+        ]
+      },
+      {
+        "selector": "[data-slot='skeleton'][data-loading] [data-skeleton]",
+        "properties": [
+          "animation"
+        ]
+      },
+      {
+        "selector": "[data-slot='skeleton'][data-revealing] :is([data-skeleton], [data-skeleton] *)",
+        "properties": [
+          "transition"
+        ]
+      }
     ]
   }
 }

@@ -21,7 +21,7 @@ A translated string (`t('orders.total')`) is design, not data. A string built fr
 - **The smallest element that holds only data.** `<h3 data-skeleton>{post.title}</h3>`, not the `<article>` around it: marking the article would turn its labels and buttons into skeletons too.
 - **Mixed text gets a span.** "By {author}" becomes `By <span data-skeleton>{author}</span>`: "By" stays, the name is a bar. Add the `<span>` if it isn't there; it's inline and changes nothing in the layout.
 - **One mark per piece of data.** A marked element inside another marked element is drawn with it; don't mark both.
-- **Pictures are marked on themselves:** `<img data-skeleton>`, `<picture data-skeleton>`, `<video data-skeleton>`. A wrapper that only holds a picture can carry the mark instead, as long as nothing else is inside.
+- **Pictures are marked on themselves:** `<img data-skeleton>`, `<video data-skeleton>`, `<canvas data-skeleton>` (or on a wrapper that holds only the picture: an `img` inside a mark is a plate too). A picture that isn't one of those, an illustration's `<svg>` or a `<div>` with a background image, is marked `data-skeleton="picture"`; an unmarked-kind `svg` is taken for an icon.
 - **Through components.** When the data element is inside a child component, pass the mark down: the child spreads `...props` onto its element, or takes the attribute explicitly. Don't mark a component's wrapper to reach one value inside it.
 
 ## Cases
@@ -29,8 +29,8 @@ A translated string (`t('orders.total')`) is design, not data. A string built fr
 - **Lists.** Each row's data elements are marked, in the row component, once; the placeholder decides how many rows show (`references/placeholder.md`). Row dividers, row borders and static labels inside a row stay unmarked: they show while loading, on the placeholder rows.
 - **Optional elements** (a "Sale" badge only some items have, an empty state, an error line): the placeholder decides whether they render. Give the placeholder the common case; when the real data differs, the layout adjusts.
 - **Form fields filled from data** (an edit form loading its record): mark the field (`<input data-skeleton defaultValue={user.email}>`): its value hides and the field shows as a 1px outline. A label is design: unmarked.
-- **Charts** aren't marked: while loading, the chart's drawing takes its place (`references/charts.md`), and the drawing carries its own mark (`data-skeleton="drawing"`). A marked chart `svg` or `canvas` with no drawing would be a striped plate, which is for pictures.
-- **A colored element whose color is the data** (a color swatch, a status dot): mark it; with nothing to read inside, it's drawn as its outline.
+- **Charts** aren't marked: while loading, the chart's drawing takes its place (`references/charts.md`), and the drawing carries its own mark (`data-skeleton="drawing"`). A marked chart `svg` with no drawing would be an icon's circle, a `canvas` a picture's plate: neither says chart.
+- **A colored element whose color is the data** (a color swatch, a status dot): mark it; with nothing inside, it's drawn as its outline. Its color goes through a class (`className="bg-(--swatch)" style={{ '--swatch': color }}`), never an inline `background`, which would show through the skeleton.
 - **Numbers that change in place** (a live counter after the first load): marking is for the first load only; `loading` is false afterwards.
 
 ## Checking the marks
