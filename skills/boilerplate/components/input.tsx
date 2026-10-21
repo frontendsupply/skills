@@ -800,7 +800,9 @@ export function AutocompleteContent({
             // behavior
             'w-(--anchor-width) max-w-(--available-width) max-h-[min(20rem,var(--available-height))] overflow-y-auto overscroll-contain outline-hidden',
             '[&:not(:has([data-slot=autocomplete-item],[data-slot=autocomplete-empty]:not(:empty),[data-slot=autocomplete-status]:not(:empty)))]:hidden',
-            'origin-(--transform-origin) transition-[scale,opacity] duration-100 ease-out data-starting-style:scale-95 data-starting-style:opacity-0 data-ending-style:scale-95 data-ending-style:opacity-0 motion-reduce:transition-none',
+            // As wide as the field, so it grows from the field's middle edge, not a corner (Base UI's --transform-origin
+            // follows `align`).
+            'data-[side=bottom]:origin-top data-[side=top]:origin-bottom transition-[scale,opacity] duration-100 ease-out data-starting-style:scale-95 data-starting-style:opacity-0 data-ending-style:scale-95 data-ending-style:opacity-0 motion-reduce:transition-none',
             // look
             'scroll-py-1 rounded-sm border border-soft bg-base p-1 text-[13px] text-strong',
             className,

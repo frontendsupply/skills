@@ -1,6 +1,6 @@
 {
   "name": "@frontendsupply/chart-skeletons",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Loading-state drawings of common charts, at a chart's exact size, for frontend.supply's skeleton skill.",
   "keywords": [
     "skeleton",
